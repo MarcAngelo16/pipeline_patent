@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Patent Pipeline</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .form-section {
+            padding: 40px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="number"] {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input[type="text"]:focus,
+        .form-group input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .countries-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .country-option {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            border: 2px solid #e1e5e9;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .country-option:hover {
+            border-color: #667eea;
+            background-color: #f8f9fa;
+        }
+
+        .country-option input[type="checkbox"] {
+            margin-right: 8px;
+        }
+
+        .country-option.selected {
+            border-color: #667eea;
+            background-color: #667eea;
+            color: white;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .submit-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .progress-section {
+            padding: 0 40px 40px;
+            display: none;
+            margin-top: 20px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background-color: #e1e5e9;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.3s;
+            width: 0%;
+        }
+
+        .progress-text {
+            text-align: left;
+            color: #333;
+            font-weight: 500;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            padding: 15px;
+            margin-top: 15px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border: 1px solid #e1e5e9;
+            line-height: 1.6;
+        }
+
+        .results-section {
+            padding: 0 40px 40px;
+            display: none;
+        }
+
+        .results-header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .results-header h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .download-links {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .download-btn {
+            display: inline-block;
+            padding: 12px 20px;
+            background: #28a745;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: 500;
+            transition: background-color 0.3s;
+        }
+
+        .download-btn:hover {
+            background: #218838;
+        }
+
+        .download-btn.sheets {
+            background: #0f9d58;
+        }
+
+        .download-btn.sheets:hover {
+            background: #0d8043;
+        }
+
+        .download-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .info-note {
+            background: #d1ecf1;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .countries-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .download-links {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .form-section {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔬 AI Patent Pipeline</h1>
+            <p>Advanced patent extraction and analysis system</p>
+        </div>
+
+        <div class="form-section">
+            <form id="pipelineForm">
+                <div class="form-group">
+                    <label for="keyword">Research Keyword</label>
+                    <input type="text" id="keyword" name="keyword" placeholder="e.g., golimumab, insulin, covid-19" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="maxMainPatents">Maximum Main Patents</label>
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <input type="number" id="maxMainPatents" name="maxMainPatents" min="1" max="1000" value="50" style="flex: 0 0 120px;">
+                        <label style="display: flex; align-items: center; gap: 8px; margin: 0; cursor: pointer;">
+                            <input type="checkbox" id="getAllResults" style="width: 18px; height: 18px; cursor: pointer;">
+                            <span style="font-weight: normal;">Get all results</span>
+                        </label>
+                    </div>
+                    <small style="color: #6c757d; display: block; margin-top: 6px;">Limit results to speed up processing</small>
+                </div>
+
+                <div class="form-group">
+                    <label style="display: block; margin-bottom: 12px;">Search Scope</label>
+                    <div style="display: flex; align-items: flex-start; gap: 10px; padding: 12px; background: #f8f9fa; border-radius: 8px; border: 2px solid #e1e5e9;">
+                        <input type="checkbox" id="includeFamilies" style="margin-top: 4px; width: 18px; height: 18px; cursor: pointer;">
+                        <div style="flex: 1;">
+                            <label for="includeFamilies" style="font-weight: 600; cursor: pointer; display: block; margin-bottom: 4px;">Include Patent Families</label>
+                            <span style="font-size: 13px; color: #6c757d; display: block;">Search related patents across multiple countries (takes longer)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="familyOptions" style="display: none;">
+                    <div class="form-group">
+                        <label>Target Countries</label>
+                        <div class="countries-grid">
+                            <div class="country-option" data-country="US">
+                                <input type="checkbox" id="US" value="US" checked>
+                                <label for="US">🇺🇸 United States</label>
+                            </div>
+                            <div class="country-option" data-country="EP">
+                                <input type="checkbox" id="EP" value="EP">
+                                <label for="EP">🇪🇺 Europe</label>
+                            </div>
+                            <div class="country-option" data-country="JP">
+                                <input type="checkbox" id="JP" value="JP">
+                                <label for="JP">🇯🇵 Japan</label>
+                            </div>
+                            <div class="country-option" data-country="WO">
+                                <input type="checkbox" id="WO" value="WO">
+                                <label for="WO">🌍 WIPO</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="maxFamilies">Max Family Patents per Country</label>
+                        <input type="number" id="maxFamilies" name="maxFamilies" min="1" max="10" value="3">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label style="display: block; margin-bottom: 12px;">Export Options</label>
+                    <div style="display: flex; align-items: flex-start; gap: 10px; padding: 12px; background: #f8f9fa; border-radius: 8px; border: 2px solid #e1e5e9;">
+                        <input type="checkbox" id="exportSheets" checked style="margin-top: 4px; width: 18px; height: 18px; cursor: pointer;">
+                        <div style="flex: 1;">
+                            <label for="exportSheets" style="font-weight: 600; cursor: pointer; display: block; margin-bottom: 4px;">📊 Export to Google Sheets</label>
+                            <span style="font-size: 13px; color: #6c757d; display: block;">Create shareable spreadsheet with formatted results</span>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="submit-btn" id="submitBtn">
+                    🚀 Start Patent Analysis
+                </button>
+            </form>
+
+            <div class="info-note">
+                <strong>💡 Tip:</strong> Main patents only (~3-5 min) for quick searches. Include families (~8-10 min) for comprehensive analysis across countries.
+            </div>
+
+            <div class="error-message" id="errorMessage"></div>
+        </div>
+
+        <div class="progress-section" id="progressSection">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-text" id="progressText">Initializing...</div>
+        </div>
+
+        <div class="results-section" id="resultsSection">
+            <div class="results-header">
+                <h3>✅ Analysis Complete!</h3>
+            </div>
+
+            <div class="stats" id="statsGrid">
+                <!-- Stats will be populated by JavaScript -->
+            </div>
+
+            <div class="download-links">
+                <a href="#" class="download-btn" id="downloadJson" target="_blank">
+                    📄 Download JSON Results
+                </a>
+                <a href="#" class="download-btn sheets" id="viewSheets" target="_blank">
+                    📊 View Google Sheets
+                </a>
+            </div>
+
+            <div id="sheetsLinkSection" style="display: none; margin-top: 20px; padding: 15px; background: #e8f5e9; border-radius: 8px; border-left: 4px solid #4caf50;">
+                <div style="font-weight: 600; color: #2e7d32; margin-bottom: 8px;">📊 Google Sheets Link:</div>
+                <div style="font-family: 'Courier New', monospace; font-size: 13px; word-break: break-all; color: #1b5e20;">
+                    <a href="#" id="sheetsLinkText" target="_blank" style="color: #1976d2; text-decoration: none;">
+                    </a>
+                </div>
+                <button onclick="navigator.clipboard.writeText(document.getElementById('sheetsLinkText').href); this.textContent='✅ Copied!'; setTimeout(() => this.textContent='📋 Copy Link', 2000)"
+                        style="margin-top: 10px; padding: 8px 16px; background: #4caf50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">
+                    📋 Copy Link
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class PatentPipeline {
+            constructor() {
+                this.currentJobId = null;
+                this.pollInterval = null;
+                this.initializeEventListeners();
+            }
+
+            initializeEventListeners() {
+                // Form submission
+                document.getElementById('pipelineForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.startPipeline();
+                });
+
+                // Max main patents "Get all" toggle handler
+                const getAllResultsCheckbox = document.getElementById('getAllResults');
+                const maxMainPatentsInput = document.getElementById('maxMainPatents');
+
+                getAllResultsCheckbox.addEventListener('change', (e) => {
+                    if (e.target.checked) {
+                        maxMainPatentsInput.disabled = true;
+                        maxMainPatentsInput.style.opacity = '0.5';
+                    } else {
+                        maxMainPatentsInput.disabled = false;
+                        maxMainPatentsInput.style.opacity = '1';
+                    }
+                });
+
+                // Family toggle handler
+                const includeFamiliesCheckbox = document.getElementById('includeFamilies');
+                const familyOptions = document.getElementById('familyOptions');
+
+                includeFamiliesCheckbox.addEventListener('change', (e) => {
+                    if (e.target.checked) {
+                        familyOptions.style.display = 'block';
+                    } else {
+                        familyOptions.style.display = 'none';
+                    }
+                });
+
+                // Country selection
+                document.querySelectorAll('.country-option').forEach(option => {
+                    option.addEventListener('click', (e) => {
+                        if (e.target.type !== 'checkbox') {
+                            const checkbox = option.querySelector('input[type="checkbox"]');
+                            checkbox.checked = !checkbox.checked;
+                        }
+                        this.updateCountrySelection(option);
+                    });
+                });
+
+                // Update country visual selection on load
+                document.querySelectorAll('.country-option').forEach(option => {
+                    this.updateCountrySelection(option);
+                });
+            }
+
+            updateCountrySelection(option) {
+                const checkbox = option.querySelector('input[type="checkbox"]');
+                if (checkbox.checked) {
+                    option.classList.add('selected');
+                } else {
+                    option.classList.remove('selected');
+                }
+            }
+
+            async startPipeline() {
+                const keyword = document.getElementById('keyword').value.trim();
+                const includeFamilies = document.getElementById('includeFamilies').checked;
+                const getAllResults = document.getElementById('getAllResults').checked;
+                const exportSheets = document.getElementById('exportSheets').checked;
+
+                // Determine max main patents
+                let maxMainPatents = null;  // null = get all
+                if (!getAllResults) {
+                    maxMainPatents = parseInt(document.getElementById('maxMainPatents').value);
+                }
+
+                let countries = ["US"];  // Default value when families disabled
+                let maxFamilies = 0;
+
+                if (includeFamilies) {
+                    // Get selected countries
+                    countries = Array.from(document.querySelectorAll('.country-option input:checked'))
+                        .map(checkbox => checkbox.value);
+                    maxFamilies = parseInt(document.getElementById('maxFamilies').value);
+
+                    if (countries.length === 0) {
+                        this.showError('Please select at least one country for family patents');
+                        return;
+                    }
+                }
+
+                if (!keyword) {
+                    this.showError('Please enter a research keyword');
+                    return;
+                }
+
+                this.hideError();
+                this.showProgress();
+                this.disableForm();
+
+                try {
+                    const response = await fetch('/api/v1/pipeline/start', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            keyword: keyword,
+                            countries: countries,
+                            max_families: maxFamilies,
+                            max_main_patents: maxMainPatents,
+                            export_sheets: exportSheets
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(result.detail || 'Failed to start pipeline');
+                    }
+
+                    this.currentJobId = result.job_id;
+                    this.startPolling();
+
+                } catch (error) {
+                    this.showError('Failed to start analysis: ' + error.message);
+                    this.enableForm();
+                    this.hideProgress();
+                }
+            }
+
+            startPolling() {
+                this.pollInterval = setInterval(() => {
+                    this.checkJobStatus();
+                }, 2000); // Poll every 2 seconds
+            }
+
+            async checkJobStatus() {
+                if (!this.currentJobId) return;
+
+                try {
+                    const response = await fetch(`/api/v1/pipeline/${this.currentJobId}`);
+                    const job = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error('Failed to get job status');
+                    }
+
+                    this.updateProgress(job.progress, job.current_stage);
+
+                    if (job.status === 'completed') {
+                        this.handleCompletion(job);
+                    } else if (job.status === 'failed') {
+                        this.handleFailure(job);
+                    }
+
+                } catch (error) {
+                    this.showError('Failed to check status: ' + error.message);
+                    this.stopPolling();
+                    this.enableForm();
+                }
+            }
+
+            updateProgress(progress, stage) {
+                document.getElementById('progressFill').style.width = progress + '%';
+                document.getElementById('progressText').textContent = stage;
+            }
+
+            handleCompletion(job) {
+                this.stopPolling();
+                this.hideProgress();
+                this.showResults(job);
+                this.enableForm();
+            }
+
+            handleFailure(job) {
+                this.stopPolling();
+                this.hideProgress();
+                this.showError('Analysis failed: ' + (job.error_message || 'Unknown error'));
+                this.enableForm();
+            }
+
+            showResults(job) {
+                const resultsSection = document.getElementById('resultsSection');
+                const statsGrid = document.getElementById('statsGrid');
+
+                // Clear previous stats
+                statsGrid.innerHTML = '';
+
+                // Add stats - only show total patents
+                if (job.results) {
+                    const statCard = document.createElement('div');
+                    statCard.className = 'stat-card';
+                    statCard.innerHTML = `
+                        <div class="stat-number">${job.results.total_patents}</div>
+                        <div class="stat-label">Total Patents Found</div>
+                    `;
+                    statsGrid.appendChild(statCard);
+                }
+
+                // Update download links
+                const downloadBtn = document.getElementById('downloadJson');
+                downloadBtn.href = `/api/v1/pipeline/${this.currentJobId}/download`;
+                downloadBtn.removeAttribute('disabled');
+
+                const sheetsBtn = document.getElementById('viewSheets');
+                const sheetsLinkSection = document.getElementById('sheetsLinkSection');
+                const sheetsLinkText = document.getElementById('sheetsLinkText');
+
+                console.log('Job sheets_url:', job.sheets_url); // Debug log
+
+                if (job.sheets_url && job.sheets_url !== null && job.sheets_url !== 'null') {
+                    sheetsBtn.href = job.sheets_url;
+                    sheetsBtn.style.display = 'inline-block';
+                    sheetsBtn.removeAttribute('disabled');
+
+                    // Show link section with full URL
+                    sheetsLinkText.href = job.sheets_url;
+                    sheetsLinkText.textContent = job.sheets_url;
+                    sheetsLinkSection.style.display = 'block';
+                } else {
+                    sheetsBtn.style.display = 'none';
+                    sheetsLinkSection.style.display = 'none';
+                }
+
+                resultsSection.style.display = 'block';
+            }
+
+            showProgress() {
+                document.getElementById('progressSection').style.display = 'block';
+                this.updateProgress(0, 'Initializing patent pipeline...');
+            }
+
+            hideProgress() {
+                document.getElementById('progressSection').style.display = 'none';
+            }
+
+            showError(message) {
+                const errorElement = document.getElementById('errorMessage');
+                errorElement.textContent = message;
+                errorElement.style.display = 'block';
+            }
+
+            hideError() {
+                document.getElementById('errorMessage').style.display = 'none';
+            }
+
+            disableForm() {
+                document.getElementById('submitBtn').disabled = true;
+                document.getElementById('submitBtn').textContent = '🔄 Analyzing...';
+            }
+
+            enableForm() {
+                document.getElementById('submitBtn').disabled = false;
+                document.getElementById('submitBtn').textContent = '🚀 Start Patent Analysis';
+            }
+
+            stopPolling() {
+                if (this.pollInterval) {
+                    clearInterval(this.pollInterval);
+                    this.pollInterval = null;
+                }
+            }
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', () => {
+            new PatentPipeline();
+        });
+    </script>
+</body>
+</html>
