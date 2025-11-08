@@ -44,6 +44,47 @@
             font-size: 1.1em;
         }
 
+        /* Tab Navigation */
+        .tab-navigation {
+            display: flex;
+            justify-content: center;
+            gap: 0;
+            margin-top: 20px;
+            border-bottom: 2px solid rgba(255,255,255,0.2);
+        }
+
+        .tab-btn {
+            background: transparent;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+            opacity: 0.7;
+        }
+
+        .tab-btn:hover {
+            opacity: 1;
+            background: rgba(255,255,255,0.1);
+        }
+
+        .tab-btn.active {
+            opacity: 1;
+            border-bottom-color: white;
+        }
+
+        /* Page Sections */
+        .page-section {
+            display: none;
+        }
+
+        .page-section.active {
+            display: block;
+        }
+
         .form-section {
             padding: 40px;
         }
@@ -278,6 +319,103 @@
                 padding: 20px;
             }
         }
+        /* History Page Styles */
+        .history-section {
+            padding: 40px;
+        }
+
+        .history-header {
+            margin-bottom: 30px;
+        }
+
+        .history-header h2 {
+            font-size: 2em;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .history-header p {
+            color: #6c757d;
+            font-size: 1.1em;
+        }
+
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .history-item {
+            background: white;
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+
+        .history-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+        }
+
+        .history-keyword {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .history-meta {
+            font-size: 0.9em;
+            color: #6c757d;
+            margin-bottom: 12px;
+        }
+
+        .history-links {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .history-link-btn {
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-block;
+        }
+
+        .history-link-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .history-link-btn.disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .history-empty {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+
+        .history-empty-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+
+        .history-empty h3 {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
     </style>
 </head>
 <body>
@@ -285,9 +423,16 @@
         <div class="header">
             <h1>🔬 AI Patent Pipeline</h1>
             <p>Advanced patent extraction and analysis system</p>
+
+            <div class="tab-navigation">
+                <button class="tab-btn active" data-tab="search">🔍 Search Patents</button>
+                <button class="tab-btn" data-tab="history">📜 Search History</button>
+            </div>
         </div>
 
-        <div class="form-section">
+        <!-- Search Page -->
+        <div class="page-section active" id="searchPage">
+            <div class="form-section">
             <form id="pipelineForm">
                 <div class="form-group">
                     <label for="keyword">Research Keyword</label>
@@ -406,6 +551,26 @@
                 </button>
             </div>
         </div>
+        </div>
+        <!-- End Search Page -->
+
+        <!-- History Page -->
+        <div class="page-section" id="historyPage">
+            <div class="history-section">
+                <div class="history-header">
+                    <h2>📜 Search History</h2>
+                    <p>View all previous patent searches and their Google Sheets exports</p>
+                </div>
+
+                <div id="historyContent">
+                    <div style="text-align: center; padding: 40px; color: #6c757d;">
+                        <div style="font-size: 3em; margin-bottom: 20px;">⏳</div>
+                        <p>Loading history...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- End History Page -->
     </div>
 
     <script>
@@ -676,9 +841,108 @@
             }
         }
 
+        // Tab Switching and History Management
+        class TabManager {
+            constructor() {
+                this.initTabs();
+            }
+
+            initTabs() {
+                const tabButtons = document.querySelectorAll('.tab-btn');
+                tabButtons.forEach(btn => {
+                    btn.addEventListener('click', () => this.switchTab(btn.dataset.tab));
+                });
+            }
+
+            switchTab(tabName) {
+                // Update button states
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.tab === tabName);
+                });
+
+                // Update page visibility
+                document.querySelectorAll('.page-section').forEach(section => {
+                    section.classList.remove('active');
+                });
+
+                if (tabName === 'search') {
+                    document.getElementById('searchPage').classList.add('active');
+                } else if (tabName === 'history') {
+                    document.getElementById('historyPage').classList.add('active');
+                    this.loadHistory();
+                }
+            }
+
+            async loadHistory() {
+                const historyContent = document.getElementById('historyContent');
+                historyContent.innerHTML = '<div style="text-align: center; padding: 40px; color: #6c757d;"><div style="font-size: 3em; margin-bottom: 20px;">⏳</div><p>Loading history...</p></div>';
+
+                try {
+                    const response = await fetch('/api/v1/history?limit=100');
+                    const data = await response.json();
+
+                    if (data.success && data.history.length > 0) {
+                        this.renderHistory(data.history);
+                    } else {
+                        this.showEmptyHistory();
+                    }
+                } catch (error) {
+                    console.error('Failed to load history:', error);
+                    historyContent.innerHTML = '<div class="history-empty"><div class="history-empty-icon">❌</div><h3>Failed to Load History</h3><p>Please try refreshing the page</p></div>';
+                }
+            }
+
+            renderHistory(historyItems) {
+                const historyContent = document.getElementById('historyContent');
+                const historyList = document.createElement('div');
+                historyList.className = 'history-list';
+
+                historyItems.forEach(item => {
+                    const historyItem = document.createElement('div');
+                    historyItem.className = 'history-item';
+
+                    const formattedDate = new Date(item.timestamp).toLocaleString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+
+                    historyItem.innerHTML = `
+                        <div class="history-keyword">🔬 ${item.keyword}</div>
+                        <div class="history-meta">Searched on ${formattedDate}</div>
+                        <div class="history-links">
+                            ${item.google_sheets_url && item.google_sheets_url !== 'null'
+                                ? `<a href="${item.google_sheets_url}" target="_blank" class="history-link-btn">📊 View Google Sheets</a>`
+                                : '<span class="history-link-btn disabled">📊 No Google Sheets</span>'
+                            }
+                        </div>
+                    `;
+
+                    historyList.appendChild(historyItem);
+                });
+
+                historyContent.innerHTML = '';
+                historyContent.appendChild(historyList);
+            }
+
+            showEmptyHistory() {
+                const historyContent = document.getElementById('historyContent');
+                historyContent.innerHTML = `
+                    <div class="history-empty">
+                        <div class="history-empty-icon">📭</div>
+                        <h3>No Search History Yet</h3>
+                        <p>Start searching for patents to see your history here!</p>
+                    </div>
+                `;
+            }
+        }
+
         // Initialize the application
         document.addEventListener('DOMContentLoaded', () => {
             new PatentPipeline();
+            new TabManager();
         });
     </script>
 </body>

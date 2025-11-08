@@ -25,8 +25,14 @@ sys.path.insert(0, str(current_dir))
 # Import the existing pipeline
 from main_patent_pipeline import PatentPipeline
 
+# Import search history database
+from utils.search_history_db import SearchHistoryDB
+
 # Job storage (in production, use Redis or database)
 jobs: Dict[str, Dict] = {}
+
+# Initialize search history database
+history_db = SearchHistoryDB()
 
 app = FastAPI(
     title="AI Patent Pipeline Web Interface",
@@ -42,6 +48,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Startup event: cleanup old database entries
+@app.on_event("startup")
+async def startup_event():
+    """Run cleanup on startup"""
+    try:
+        deleted_count = history_db.cleanup_old_entries(months=3)
+        print(f"🧹 Startup cleanup: Removed {deleted_count} entries older than 3 months")
+    except Exception as e:
+        print(f"⚠️  Startup cleanup failed: {e}")
 
 # Request/Response Models
 class PipelineRequest(BaseModel):
@@ -149,6 +165,16 @@ async def run_pipeline_job(job_id: str, keyword: str, countries: List[str],
         print(f"  - Job sheets_url stored: {jobs[job_id].get('sheets_url')}")
         print(f"🔍 DEBUG END\n")
 
+        # Save to search history database
+        try:
+            history_db.add_search(
+                keyword=keyword,
+                google_sheets_url=sheets_url if sheets_url else None
+            )
+            print(f"✅ Saved search to history database: {keyword}")
+        except Exception as db_error:
+            print(f"⚠️  Failed to save to history database: {db_error}")
+
     except Exception as e:
         # Update job failure
         jobs[job_id].update({
@@ -245,6 +271,27 @@ async def delete_job(job_id: str):
 
     del jobs[job_id]
     return {"message": "Job deleted"}
+
+@app.get("/api/v1/history")
+async def get_search_history(limit: int = 100):
+    """
+    Get search history
+
+    Args:
+        limit: Maximum number of records to return (default: 100)
+
+    Returns:
+        List of search history entries with keyword and Google Sheets URL
+    """
+    try:
+        history = history_db.get_history(limit=limit)
+        return {
+            "success": True,
+            "count": len(history),
+            "history": history
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve history: {str(e)}")
 
 # Serve static files (CSS, JS, images)
 static_path = current_dir / "web_interface" / "frontend" / "static"

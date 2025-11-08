@@ -9,6 +9,8 @@ A comprehensive AI-powered patent extraction pipeline with modern web interface 
 ✅ Complete end-to-end pipeline
 ✅ Modern web interface with real-time progress tracking
 ✅ Google Sheets integration (OAuth)
+✅ Search history with auto-cleanup (SQLite)
+✅ Multi-word keyword search support
 ✅ Configurable search parameters
 ✅ Docker containerized
 
@@ -45,11 +47,12 @@ python main_patent_pipeline.py golimumab --max-main-patents 50 --max-families 3 
 The web interface provides an intuitive way to search patents without command-line knowledge:
 
 **Features:**
-- 🔍 **Keyword Search** - Enter drug names, compounds, or technologies
+- 🔍 **Keyword Search** - Enter drug names, compounds, or technologies (supports multi-word queries)
 - 🔢 **Main Patent Limit** - Control result size (default: 50, or unlimited)
 - 👨‍👩‍👧‍👦 **Patent Family Toggle** - Optional family member search across countries
 - 🌍 **Multi-Country Selection** - US, EP, JP, WIPO support
 - 📊 **Google Sheets Export** - One-click shareable spreadsheets
+- 📜 **Search History** - View all past searches with Google Sheets links
 - 📈 **Real-Time Progress** - Live updates with phase tracking
 - 📥 **JSON Download** - Raw data export for further analysis
 
@@ -138,6 +141,7 @@ Clean, focused results view:
 - `POST /api/v1/pipeline/start` - Start new analysis
 - `GET /api/v1/pipeline/{job_id}` - Get job status
 - `GET /api/v1/pipeline/{job_id}/download` - Download JSON
+- `GET /api/v1/history` - Get search history
 - `GET /api/v1/jobs` - List all jobs (debug)
 
 ### **2. Main Pipeline** (`main_patent_pipeline.py`)
@@ -160,6 +164,11 @@ Clean, focused results view:
 ### **3. PubChem Fetcher** (`pubchem_fetcher/`)
 
 Fetches patents from PubChem by keyword search.
+
+**Features:**
+- Multi-word search support (auto-splits into AND conditions)
+- Example: "lansoprazole inject" → searches for patents with both terms
+- Filters stop words to match PubChem behavior
 
 **Output:** JSON file with patent IDs and basic info
 
@@ -203,6 +212,21 @@ Selenium-based web scraper for detailed content.
 **Tabs Created:**
 1. **Pipeline_Summary** - Execution stats, counts, configuration
 2. **Patent_Details** - Full patent data in table format
+
+### **7. Search History Database** (`utils/search_history_db.py`)
+
+**Storage:** SQLite database (built-in, no extra dependencies)
+
+**Features:**
+- Auto-saves every successful search with keyword + Google Sheets URL
+- Auto-cleanup: Removes entries older than 3 months on startup
+- Public history: All users see all searches
+- Database location: `utils/search_history.db`
+
+**Methods:**
+- `add_search()` - Save new search to history
+- `get_history()` - Retrieve recent searches
+- `cleanup_old_entries()` - Delete entries older than N months
 
 ---
 
@@ -331,6 +355,8 @@ uvicorn>=0.24.0
 pydantic>=2.12.3
 ```
 
+**Note:** SQLite3 is included in Python's standard library (no additional installation needed)
+
 ### **System Requirements:**
 
 | Component | Requirement |
@@ -386,7 +412,9 @@ pydantic>=2.12.3
 ├── utils/
 │   ├── pipeline_logger.py        # Logging system
 │   ├── file_manager.py           # File operations
-│   └── patent_url_generator.py   # URL utilities
+│   ├── patent_url_generator.py   # URL utilities
+│   ├── search_history_db.py      # Search history database
+│   └── search_history.db         # SQLite database (auto-created)
 │
 └── output/
     ├── {keyword}_patents.json    # Final output
@@ -404,6 +432,7 @@ pydantic>=2.12.3
 - `oauth_client_secret.json` - OAuth client credentials
 - `google_credentials.json` - Service account key
 - `output/` - All output files and logs
+- `utils/search_history.db` - Search history database (optional)
 
 ### **Example Files (Safe to Commit):**
 

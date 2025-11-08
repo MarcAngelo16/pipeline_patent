@@ -29,6 +29,13 @@ class PubChemPatentFetcher:
 
     def build_patent_search_query(self, compound_name, limit=10000000):
         """Build the search query for patent data"""
+        # Split compound_name by spaces to create separate AND conditions
+        # This matches PubChem's behavior for multi-word searches
+        keywords = compound_name.strip().split()
+
+        # Create AND conditions for each keyword
+        ands_conditions = [{"*": keyword} for keyword in keywords]
+
         query = {
             "download": "*",
             "collection": "patent",
@@ -37,9 +44,7 @@ class PubChemPatentFetcher:
             "limit": limit,
             "downloadfilename": f"PubChem_patent_text_{compound_name}",
             "where": {
-                "ands": [
-                    {"*": compound_name}
-                ]
+                "ands": ands_conditions
             }
         }
         return query

@@ -16,6 +16,9 @@ output/
 output/**/*.json
 output/pipeline_logs/
 
+# Database files
+utils/search_history.db
+
 # Python
 __pycache__/
 *.py[cod]
