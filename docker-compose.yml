@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  patent-pipeline:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: patent-pipeline:latest
+    container_name: patent-pipeline
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app/patent_pipeline
+    environment:
+      - PYTHONPATH=/app/patent_pipeline
+      - DISPLAY=:99
+    command: tail -f /dev/null
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G

@@ -1,0 +1,53 @@
+{
+  "drugbank_id": "DB05541",
+  "drug_name": "Brivaracetam",
+  "patents": [
+    {
+      "patent_id": "US6911461",
+      "google_patent_url": "https://patents.google.com/patent/US6911461",
+      "pediatric_extension": "No",
+      "approved_date": "2005-06-28",
+      "expires_date": "2021-02-21",
+      "country": "US",
+      "source": "DrugBank",
+      "drugbank_id": "DB05541",
+      "drugbank_url": "https://go.drugbank.com/drugs/DB05541"
+    },
+    {
+      "patent_id": "US6784197",
+      "google_patent_url": "https://patents.google.com/patent/US6784197",
+      "pediatric_extension": "No",
+      "approved_date": "2004-08-31",
+      "expires_date": "2021-02-21",
+      "country": "US",
+      "source": "DrugBank",
+      "drugbank_id": "DB05541",
+      "drugbank_url": "https://go.drugbank.com/drugs/DB05541"
+    },
+    {
+      "patent_id": "US8492416",
+      "google_patent_url": "https://patents.google.com/patent/US8492416",
+      "pediatric_extension": "No",
+      "approved_date": "2013-07-23",
+      "expires_date": "2021-02-21",
+      "country": "US",
+      "source": "DrugBank",
+      "drugbank_id": "DB05541",
+      "drugbank_url": "https://go.drugbank.com/drugs/DB05541"
+    },
+    {
+      "patent_id": "US10729653",
+      "google_patent_url": "https://patents.google.com/patent/US10729653",
+      "pediatric_extension": "No",
+      "approved_date": "2020-08-04",
+      "expires_date": "2030-04-09",
+      "country": "US",
+      "source": "DrugBank",
+      "drugbank_id": "DB05541",
+      "drugbank_url": "https://go.drugbank.com/drugs/DB05541"
+    }
+  ],
+  "total_patents": 4,
+  "timestamp": "2026-01-29T09:05:00.531406",
+  "error": null
+}

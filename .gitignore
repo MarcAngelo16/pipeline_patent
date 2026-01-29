@@ -1,0 +1,67 @@
+# Sensitive credentials - DO NOT COMMIT
+google_sheets_integration/oauth_token.json
+google_sheets_integration/oauth_client_secret.json
+google_sheets_integration/google_credentials.json
+
+# Local OAuth setup folder (contains credentials)
+google_sheets_integration/local_setup/*.json
+!google_sheets_integration/local_setup/README.md
+
+# Environment variables
+.env
+.env.local
+
+# Output files
+output/
+output/**/*.json
+output/pipeline_logs/
+
+# Database files
+utils/search_history.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+*.log
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/

@@ -1,0 +1,1288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Patent Pipeline</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        /* Tab Navigation */
+        .tab-navigation {
+            display: flex;
+            justify-content: center;
+            gap: 0;
+            margin-top: 20px;
+            border-bottom: 2px solid rgba(255,255,255,0.2);
+        }
+
+        .tab-btn {
+            background: transparent;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+            opacity: 0.7;
+        }
+
+        .tab-btn:hover {
+            opacity: 1;
+            background: rgba(255,255,255,0.1);
+        }
+
+        .tab-btn.active {
+            opacity: 1;
+            border-bottom-color: white;
+        }
+
+        /* Page Sections */
+        .page-section {
+            display: none;
+        }
+
+        .page-section.active {
+            display: block;
+        }
+
+        .form-section {
+            padding: 40px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="number"] {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input[type="text"]:focus,
+        .form-group input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .countries-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .country-option {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            border: 2px solid #e1e5e9;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .country-option:hover {
+            border-color: #667eea;
+            background-color: #f8f9fa;
+        }
+
+        .country-option input[type="checkbox"] {
+            margin-right: 8px;
+        }
+
+        .country-option.selected {
+            border-color: #667eea;
+            background-color: #667eea;
+            color: white;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .submit-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .progress-section {
+            padding: 0 40px 40px;
+            display: none;
+            margin-top: 20px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background-color: #e1e5e9;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.3s;
+            width: 0%;
+        }
+
+        .progress-text {
+            text-align: left;
+            color: #333;
+            font-weight: 500;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            padding: 15px;
+            margin-top: 15px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border: 1px solid #e1e5e9;
+            line-height: 1.6;
+        }
+
+        .results-section {
+            padding: 0 40px 40px;
+            display: none;
+        }
+
+        .results-header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .results-header h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .download-links {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .download-btn {
+            display: inline-block;
+            padding: 12px 20px;
+            background: #28a745;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: 500;
+            transition: background-color 0.3s;
+        }
+
+        .download-btn:hover {
+            background: #218838;
+        }
+
+        .download-btn.sheets {
+            background: #0f9d58;
+        }
+
+        .download-btn.sheets:hover {
+            background: #0d8043;
+        }
+
+        .download-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .info-note {
+            background: #d1ecf1;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .countries-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .download-links {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .form-section {
+                padding: 20px;
+            }
+        }
+        /* History Page Styles */
+        .history-section {
+            padding: 40px;
+        }
+
+        .history-header {
+            margin-bottom: 30px;
+        }
+
+        .history-header h2 {
+            font-size: 2em;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .history-header p {
+            color: #6c757d;
+            font-size: 1.1em;
+        }
+
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .history-item {
+            background: white;
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+
+        .history-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+        }
+
+        .history-keyword {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .history-meta {
+            font-size: 0.9em;
+            color: #6c757d;
+            margin-bottom: 12px;
+        }
+
+        .history-links {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .history-link-btn {
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-block;
+        }
+
+        .history-link-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .history-link-btn.disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .history-empty {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+
+        .history-empty-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+
+        .history-empty h3 {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        /* Delete button styles */
+        .delete-btn {
+            padding: 8px 16px;
+            background: #dc3545;
+            color: white;
+            text-decoration: none;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: all 0.3s;
+            cursor: pointer;
+            display: inline-block;
+        }
+
+        .delete-btn:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+        }
+
+        .clear-all-btn {
+            padding: 10px 20px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .clear-all-btn:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
+        /* Confirmation dialog styles */
+        .confirmation-dialog {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .confirmation-dialog.active {
+            display: flex;
+        }
+
+        .confirmation-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 500px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .confirmation-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .confirmation-message {
+            font-size: 1em;
+            margin-bottom: 25px;
+            color: #666;
+        }
+
+        .confirmation-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .btn-cancel {
+            padding: 10px 20px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-confirm {
+            padding: 10px 20px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-cancel:hover {
+            background: #5a6268;
+        }
+
+        .btn-confirm:hover {
+            background: #c82333;
+        }
+
+        .history-header-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .history-header-left h2 {
+            font-size: 2em;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .history-header-left p {
+            color: #6c757d;
+            font-size: 1.1em;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔬 AI Patent Pipeline</h1>
+            <p>Advanced patent extraction and analysis system</p>
+
+            <div class="tab-navigation">
+                <button class="tab-btn active" data-tab="search">🔍 Search Patents</button>
+                <button class="tab-btn" data-tab="history">📜 Search History</button>
+            </div>
+        </div>
+
+        <!-- Search Page -->
+        <div class="page-section active" id="searchPage">
+            <div class="form-section">
+            <form id="pipelineForm">
+                <div class="form-group">
+                    <label style="display: block; margin-bottom: 12px;">Data Source</label>
+                    <div style="display: flex; gap: 20px; padding: 12px; background: #f8f9fa; border-radius: 8px; border: 2px solid #e1e5e9;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; flex: 1;">
+                            <input type="radio" name="source" value="pubchem" id="sourcePubchem" checked style="width: 18px; height: 18px; cursor: pointer;">
+                            <span style="font-weight: 600;">PubChem (by Keyword)</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; flex: 1;">
+                            <input type="radio" name="source" value="drugbank" id="sourceDrugbank" style="width: 18px; height: 18px; cursor: pointer;">
+                            <span style="font-weight: 600;">DrugBank (by ID)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group" id="keywordGroup">
+                    <label for="keyword">Research Keyword</label>
+                    <input type="text" id="keyword" name="keyword" placeholder="e.g., golimumab, insulin, covid-19">
+                </div>
+
+                <div class="form-group" id="drugbankGroup" style="display: none;">
+                    <label for="drugbankId">DrugBank ID</label>
+                    <input type="text" id="drugbankId" name="drugbankId" placeholder="e.g., DB05541, DB00001">
+                    <small style="color: #6c757d; display: block; margin-top: 6px;">Enter a valid DrugBank ID (format: DBxxxxx)</small>
+                </div>
+
+                <div class="form-group" id="maxPatentsGroup">
+                    <label for="maxMainPatents">Maximum Patents</label>
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <input type="number" id="maxMainPatents" name="maxMainPatents" min="1" max="1000" value="50" style="flex: 0 0 120px;">
+                        <label style="display: flex; align-items: center; gap: 8px; margin: 0; cursor: pointer;">
+                            <input type="checkbox" id="getAllResults" style="width: 18px; height: 18px; cursor: pointer;">
+                            <span style="font-weight: normal;">Get all results</span>
+                        </label>
+                    </div>
+                    <small style="color: #6c757d; display: block; margin-top: 6px;">Limit results to speed up processing</small>
+                </div>
+
+                <div class="form-group" id="searchScopeGroup">
+                    <label style="display: block; margin-bottom: 12px;">Search Scope</label>
+                    <div style="display: flex; align-items: flex-start; gap: 10px; padding: 12px; background: #f8f9fa; border-radius: 8px; border: 2px solid #e1e5e9;">
+                        <input type="checkbox" id="includeFamilies" style="margin-top: 4px; width: 18px; height: 18px; cursor: pointer;">
+                        <div style="flex: 1;">
+                            <label for="includeFamilies" style="font-weight: 600; cursor: pointer; display: block; margin-bottom: 4px;">Include Patent Families</label>
+                            <span style="font-size: 13px; color: #6c757d; display: block;">Search related patents across multiple countries (takes longer)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="familyOptions" style="display: none;">
+                    <div class="form-group">
+                        <label>Target Countries</label>
+                        <div class="countries-grid">
+                            <div class="country-option" data-country="US">
+                                <input type="checkbox" id="US" value="US" checked>
+                                <label for="US">🇺🇸 United States</label>
+                            </div>
+                            <div class="country-option" data-country="EP">
+                                <input type="checkbox" id="EP" value="EP">
+                                <label for="EP">🇪🇺 Europe</label>
+                            </div>
+                            <div class="country-option" data-country="JP">
+                                <input type="checkbox" id="JP" value="JP">
+                                <label for="JP">🇯🇵 Japan</label>
+                            </div>
+                            <div class="country-option" data-country="WO">
+                                <input type="checkbox" id="WO" value="WO">
+                                <label for="WO">🌍 WIPO</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="maxFamilies">Max Family Patents per Country</label>
+                        <input type="number" id="maxFamilies" name="maxFamilies" min="1" max="10" value="3">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label style="display: block; margin-bottom: 12px;">Export Options</label>
+                    <div style="display: flex; align-items: flex-start; gap: 10px; padding: 12px; background: #f8f9fa; border-radius: 8px; border: 2px solid #e1e5e9;">
+                        <input type="checkbox" id="exportSheets" checked style="margin-top: 4px; width: 18px; height: 18px; cursor: pointer;">
+                        <div style="flex: 1;">
+                            <label for="exportSheets" style="font-weight: 600; cursor: pointer; display: block; margin-bottom: 4px;">📊 Export to Google Sheets</label>
+                            <span style="font-size: 13px; color: #6c757d; display: block;">Create shareable spreadsheet with formatted results</span>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="submit-btn" id="submitBtn">
+                    🚀 Start Patent Analysis
+                </button>
+            </form>
+
+            <div class="info-note" id="infoNote">
+                <strong>💡 Tip:</strong> Main patents only (~3-5 min) for quick searches. Include families (~8-10 min) for comprehensive analysis across countries.
+            </div>
+
+            <div class="error-message" id="errorMessage"></div>
+        </div>
+
+        <div class="progress-section" id="progressSection">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-text" id="progressText">Initializing...</div>
+        </div>
+
+        <div class="results-section" id="resultsSection">
+            <div class="results-header">
+                <h3>✅ Analysis Complete!</h3>
+            </div>
+
+            <div class="stats" id="statsGrid">
+                <!-- Stats will be populated by JavaScript -->
+            </div>
+
+            <div class="download-links">
+                <a href="#" class="download-btn" id="downloadJson" target="_blank">
+                    📄 Download JSON Results
+                </a>
+                <a href="#" class="download-btn sheets" id="viewSheets" target="_blank">
+                    📊 View Google Sheets
+                </a>
+            </div>
+
+            <div id="sheetsLinkSection" style="display: none; margin-top: 20px; padding: 15px; background: #e8f5e9; border-radius: 8px; border-left: 4px solid #4caf50;">
+                <div style="font-weight: 600; color: #2e7d32; margin-bottom: 8px;">📊 Google Sheets Link:</div>
+                <div style="font-family: 'Courier New', monospace; font-size: 13px; word-break: break-all; color: #1b5e20;">
+                    <a href="#" id="sheetsLinkText" target="_blank" style="color: #1976d2; text-decoration: none;">
+                    </a>
+                </div>
+                <button onclick="navigator.clipboard.writeText(document.getElementById('sheetsLinkText').href); this.textContent='✅ Copied!'; setTimeout(() => this.textContent='📋 Copy Link', 2000)"
+                        style="margin-top: 10px; padding: 8px 16px; background: #4caf50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">
+                    📋 Copy Link
+                </button>
+            </div>
+        </div>
+        </div>
+        <!-- End Search Page -->
+
+        <!-- History Page -->
+        <div class="page-section" id="historyPage">
+            <div class="history-section">
+                <div class="history-header-actions">
+                    <div class="history-header-left">
+                        <h2>📜 Search History</h2>
+                        <p>View all previous patent searches and their Google Sheets exports</p>
+                    </div>
+                    <button class="clear-all-btn" id="clearAllBtn" onclick="showClearAllConfirmation()">
+                        🗑️ Clear All History
+                    </button>
+                </div>
+
+                <div id="historyContent">
+                    <div style="text-align: center; padding: 40px; color: #6c757d;">
+                        <div style="font-size: 3em; margin-bottom: 20px;">⏳</div>
+                        <p>Loading history...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- End History Page -->
+    </div>
+
+    <!-- Confirmation Dialog -->
+    <div class="confirmation-dialog" id="confirmationDialog">
+        <div class="confirmation-content">
+            <div class="confirmation-title">⚠️ Clear All History?</div>
+            <div class="confirmation-message">
+                This will permanently delete all search history entries and their associated JSON files. This action cannot be undone.
+            </div>
+            <div class="confirmation-buttons">
+                <button class="btn-cancel" onclick="hideClearAllConfirmation()">Cancel</button>
+                <button class="btn-confirm" onclick="confirmClearAll()">Yes, Clear All</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class PatentPipeline {
+            constructor() {
+                this.currentJobId = null;
+                this.pollInterval = null;
+                this.initializeEventListeners();
+            }
+
+            initializeEventListeners() {
+                // Form submission
+                document.getElementById('pipelineForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.startPipeline();
+                });
+
+                // Source switching handler
+                document.querySelectorAll('input[name="source"]').forEach(radio => {
+                    radio.addEventListener('change', (e) => {
+                        this.handleSourceChange(e.target.value);
+                    });
+                });
+
+                // Max main patents "Get all" toggle handler
+                const getAllResultsCheckbox = document.getElementById('getAllResults');
+                const maxMainPatentsInput = document.getElementById('maxMainPatents');
+
+                getAllResultsCheckbox.addEventListener('change', (e) => {
+                    if (e.target.checked) {
+                        maxMainPatentsInput.disabled = true;
+                        maxMainPatentsInput.style.opacity = '0.5';
+                    } else {
+                        maxMainPatentsInput.disabled = false;
+                        maxMainPatentsInput.style.opacity = '1';
+                    }
+                });
+
+                // Family toggle handler
+                const includeFamiliesCheckbox = document.getElementById('includeFamilies');
+                const familyOptions = document.getElementById('familyOptions');
+
+                includeFamiliesCheckbox.addEventListener('change', (e) => {
+                    if (e.target.checked) {
+                        familyOptions.style.display = 'block';
+                    } else {
+                        familyOptions.style.display = 'none';
+                    }
+                });
+
+                // Country selection
+                document.querySelectorAll('.country-option').forEach(option => {
+                    option.addEventListener('click', (e) => {
+                        if (e.target.type !== 'checkbox') {
+                            const checkbox = option.querySelector('input[type="checkbox"]');
+                            checkbox.checked = !checkbox.checked;
+                        }
+                        this.updateCountrySelection(option);
+                    });
+                });
+
+                // Update country visual selection on load
+                document.querySelectorAll('.country-option').forEach(option => {
+                    this.updateCountrySelection(option);
+                });
+            }
+
+            updateCountrySelection(option) {
+                const checkbox = option.querySelector('input[type="checkbox"]');
+                if (checkbox.checked) {
+                    option.classList.add('selected');
+                } else {
+                    option.classList.remove('selected');
+                }
+            }
+
+            handleSourceChange(source) {
+                const keywordGroup = document.getElementById('keywordGroup');
+                const drugbankGroup = document.getElementById('drugbankGroup');
+                const maxPatentsGroup = document.getElementById('maxPatentsGroup');
+                const searchScopeGroup = document.getElementById('searchScopeGroup');
+                const familyOptions = document.getElementById('familyOptions');
+                const infoNote = document.getElementById('infoNote');
+
+                if (source === 'pubchem') {
+                    keywordGroup.style.display = 'block';
+                    drugbankGroup.style.display = 'none';
+                    maxPatentsGroup.style.display = 'block';
+                    searchScopeGroup.style.display = 'block';
+                    document.getElementById('keyword').required = true;
+                    document.getElementById('drugbankId').required = false;
+                    infoNote.innerHTML = '<strong>💡 Tip:</strong> Main patents only (~3-5 min) for quick searches. Include families (~8-10 min) for comprehensive analysis across countries.';
+                } else {
+                    // DrugBank source - hide options not applicable
+                    keywordGroup.style.display = 'none';
+                    drugbankGroup.style.display = 'block';
+                    maxPatentsGroup.style.display = 'none';
+                    searchScopeGroup.style.display = 'none';
+                    familyOptions.style.display = 'none';
+                    document.getElementById('keyword').required = false;
+                    document.getElementById('drugbankId').required = true;
+                    // Uncheck include families when switching to DrugBank
+                    document.getElementById('includeFamilies').checked = false;
+                    infoNote.innerHTML = '<strong>💡 Tip:</strong> DrugBank searches return a fixed set of patents per drug (typically 1-10 patents, ~1-3 min processing).';
+                }
+            }
+
+            async startPipeline() {
+                const source = document.querySelector('input[name="source"]:checked').value;
+                const keyword = document.getElementById('keyword').value.trim();
+                const drugbankId = document.getElementById('drugbankId').value.trim();
+                const includeFamilies = document.getElementById('includeFamilies').checked;
+                const getAllResults = document.getElementById('getAllResults').checked;
+                const exportSheets = document.getElementById('exportSheets').checked;
+
+                // Determine max main patents
+                let maxMainPatents = null;  // null = get all
+                if (!getAllResults) {
+                    maxMainPatents = parseInt(document.getElementById('maxMainPatents').value);
+                }
+
+                let countries = ["US"];  // Default value when families disabled
+                let maxFamilies = 0;
+
+                if (includeFamilies) {
+                    // Get selected countries
+                    countries = Array.from(document.querySelectorAll('.country-option input:checked'))
+                        .map(checkbox => checkbox.value);
+                    maxFamilies = parseInt(document.getElementById('maxFamilies').value);
+
+                    if (countries.length === 0) {
+                        this.showError('Please select at least one country for family patents');
+                        return;
+                    }
+                }
+
+                // Validate based on source
+                if (source === 'pubchem' && !keyword) {
+                    this.showError('Please enter a research keyword');
+                    return;
+                }
+
+                if (source === 'drugbank' && !drugbankId) {
+                    this.showError('Please enter a DrugBank ID');
+                    return;
+                }
+
+                this.hideError();
+                this.showProgress();
+                this.disableForm();
+
+                try {
+                    const requestBody = {
+                        source: source,
+                        countries: countries,
+                        max_families: maxFamilies,
+                        max_main_patents: maxMainPatents,
+                        export_sheets: exportSheets
+                    };
+
+                    // Add source-specific field
+                    if (source === 'pubchem') {
+                        requestBody.keyword = keyword;
+                    } else {
+                        requestBody.drugbank_id = drugbankId;
+                    }
+
+                    const response = await fetch('/api/v1/pipeline/start', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(requestBody)
+                    });
+
+                    const result = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(result.detail || 'Failed to start pipeline');
+                    }
+
+                    this.currentJobId = result.job_id;
+                    this.startPolling();
+
+                } catch (error) {
+                    this.showError('Failed to start analysis: ' + error.message);
+                    this.enableForm();
+                    this.hideProgress();
+                }
+            }
+
+            startPolling() {
+                this.pollInterval = setInterval(() => {
+                    this.checkJobStatus();
+                }, 2000); // Poll every 2 seconds
+            }
+
+            async checkJobStatus() {
+                if (!this.currentJobId) return;
+
+                try {
+                    const response = await fetch(`/api/v1/pipeline/${this.currentJobId}`);
+                    const job = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error('Failed to get job status');
+                    }
+
+                    this.updateProgress(job.progress, job.current_stage);
+
+                    if (job.status === 'completed') {
+                        this.handleCompletion(job);
+                    } else if (job.status === 'failed') {
+                        this.handleFailure(job);
+                    }
+
+                } catch (error) {
+                    this.showError('Failed to check status: ' + error.message);
+                    this.stopPolling();
+                    this.enableForm();
+                }
+            }
+
+            updateProgress(progress, stage) {
+                document.getElementById('progressFill').style.width = progress + '%';
+                document.getElementById('progressText').textContent = stage;
+            }
+
+            handleCompletion(job) {
+                this.stopPolling();
+                this.hideProgress();
+                this.showResults(job);
+                this.enableForm();
+            }
+
+            handleFailure(job) {
+                this.stopPolling();
+                this.hideProgress();
+                this.showError('Analysis failed: ' + (job.error_message || 'Unknown error'));
+                this.enableForm();
+            }
+
+            showResults(job) {
+                const resultsSection = document.getElementById('resultsSection');
+                const statsGrid = document.getElementById('statsGrid');
+
+                // Clear previous stats
+                statsGrid.innerHTML = '';
+
+                // Add stats - show source and total patents
+                if (job.results) {
+                    // Source card
+                    const sourceCard = document.createElement('div');
+                    sourceCard.className = 'stat-card';
+                    const source = job.results.source || 'pubchem';
+                    const searchTerm = source === 'pubchem' ? job.results.keyword : job.results.drugbank_id;
+                    sourceCard.innerHTML = `
+                        <div class="stat-number">${source.toUpperCase()}</div>
+                        <div class="stat-label">${searchTerm || 'N/A'}</div>
+                    `;
+                    statsGrid.appendChild(sourceCard);
+
+                    // Total patents card
+                    const statCard = document.createElement('div');
+                    statCard.className = 'stat-card';
+                    statCard.innerHTML = `
+                        <div class="stat-number">${job.results.total_patents}</div>
+                        <div class="stat-label">Total Patents Found</div>
+                    `;
+                    statsGrid.appendChild(statCard);
+                }
+
+                // Update download links
+                const downloadBtn = document.getElementById('downloadJson');
+                downloadBtn.href = `/api/v1/pipeline/${this.currentJobId}/download`;
+                downloadBtn.removeAttribute('disabled');
+
+                const sheetsBtn = document.getElementById('viewSheets');
+                const sheetsLinkSection = document.getElementById('sheetsLinkSection');
+                const sheetsLinkText = document.getElementById('sheetsLinkText');
+
+                console.log('Job sheets_url:', job.sheets_url); // Debug log
+
+                if (job.sheets_url && job.sheets_url !== null && job.sheets_url !== 'null') {
+                    sheetsBtn.href = job.sheets_url;
+                    sheetsBtn.style.display = 'inline-block';
+                    sheetsBtn.removeAttribute('disabled');
+
+                    // Show link section with full URL
+                    sheetsLinkText.href = job.sheets_url;
+                    sheetsLinkText.textContent = job.sheets_url;
+                    sheetsLinkSection.style.display = 'block';
+                } else {
+                    sheetsBtn.style.display = 'none';
+                    sheetsLinkSection.style.display = 'none';
+                }
+
+                resultsSection.style.display = 'block';
+            }
+
+            showProgress() {
+                document.getElementById('progressSection').style.display = 'block';
+                this.updateProgress(0, 'Initializing patent pipeline...');
+            }
+
+            hideProgress() {
+                document.getElementById('progressSection').style.display = 'none';
+            }
+
+            showError(message) {
+                const errorElement = document.getElementById('errorMessage');
+                errorElement.textContent = message;
+                errorElement.style.display = 'block';
+            }
+
+            hideError() {
+                document.getElementById('errorMessage').style.display = 'none';
+            }
+
+            disableForm() {
+                document.getElementById('submitBtn').disabled = true;
+                document.getElementById('submitBtn').textContent = '🔄 Analyzing...';
+            }
+
+            enableForm() {
+                document.getElementById('submitBtn').disabled = false;
+                document.getElementById('submitBtn').textContent = '🚀 Start Patent Analysis';
+            }
+
+            stopPolling() {
+                if (this.pollInterval) {
+                    clearInterval(this.pollInterval);
+                    this.pollInterval = null;
+                }
+            }
+        }
+
+        // Tab Switching and History Management
+        class TabManager {
+            constructor() {
+                this.initTabs();
+            }
+
+            initTabs() {
+                const tabButtons = document.querySelectorAll('.tab-btn');
+                tabButtons.forEach(btn => {
+                    btn.addEventListener('click', () => this.switchTab(btn.dataset.tab));
+                });
+            }
+
+            switchTab(tabName) {
+                // Update button states
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.tab === tabName);
+                });
+
+                // Update page visibility
+                document.querySelectorAll('.page-section').forEach(section => {
+                    section.classList.remove('active');
+                });
+
+                if (tabName === 'search') {
+                    document.getElementById('searchPage').classList.add('active');
+                } else if (tabName === 'history') {
+                    document.getElementById('historyPage').classList.add('active');
+                    this.loadHistory();
+                }
+            }
+
+            async loadHistory() {
+                const historyContent = document.getElementById('historyContent');
+                historyContent.innerHTML = '<div style="text-align: center; padding: 40px; color: #6c757d;"><div style="font-size: 3em; margin-bottom: 20px;">⏳</div><p>Loading history...</p></div>';
+
+                try {
+                    const response = await fetch('/api/v1/history?limit=100');
+                    const data = await response.json();
+
+                    if (data.success && data.history.length > 0) {
+                        this.renderHistory(data.history);
+                    } else {
+                        this.showEmptyHistory();
+                    }
+                } catch (error) {
+                    console.error('Failed to load history:', error);
+                    historyContent.innerHTML = '<div class="history-empty"><div class="history-empty-icon">❌</div><h3>Failed to Load History</h3><p>Please try refreshing the page</p></div>';
+                }
+            }
+
+            renderHistory(historyItems) {
+                const historyContent = document.getElementById('historyContent');
+                const historyList = document.createElement('div');
+                historyList.className = 'history-list';
+
+                historyItems.forEach(item => {
+                    const historyItem = document.createElement('div');
+                    historyItem.className = 'history-item';
+
+                    const formattedDate = new Date(item.timestamp).toLocaleString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+
+                    // Format display name with source prefix
+                    const source = item.source || 'pubchem';
+                    const sourceLabel = source.charAt(0).toUpperCase() + source.slice(1);
+                    const displayName = item.display_name || item.keyword;
+
+                    // Show drugbank ID in parentheses for DrugBank sources
+                    let fullDisplayName = `${sourceLabel}: ${displayName}`;
+                    if (source === 'drugbank' && item.keyword !== displayName) {
+                        fullDisplayName += ` (${item.keyword})`;
+                    }
+
+                    historyItem.innerHTML = `
+                        <div class="history-keyword">🔬 ${fullDisplayName}</div>
+                        <div class="history-meta">Searched on ${formattedDate}</div>
+                        <div class="history-links">
+                            ${item.google_sheets_url && item.google_sheets_url !== 'null'
+                                ? `<a href="${item.google_sheets_url}" target="_blank" class="history-link-btn">📊 View Google Sheets</a>`
+                                : '<span class="history-link-btn disabled">📊 No Google Sheets</span>'
+                            }
+                            <button class="delete-btn" onclick="deleteHistoryEntry(${item.id})">🗑️ Delete</button>
+                        </div>
+                    `;
+
+                    historyList.appendChild(historyItem);
+                });
+
+                historyContent.innerHTML = '';
+                historyContent.appendChild(historyList);
+            }
+
+            showEmptyHistory() {
+                const historyContent = document.getElementById('historyContent');
+                historyContent.innerHTML = `
+                    <div class="history-empty">
+                        <div class="history-empty-icon">📭</div>
+                        <h3>No Search History Yet</h3>
+                        <p>Start searching for patents to see your history here!</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Delete history entry function (global)
+        async function deleteHistoryEntry(historyId) {
+            if (!confirm('Are you sure you want to delete this entry?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/v1/history/${historyId}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    let message = '✅ History entry deleted successfully!\n';
+                    message += `Files deleted: ${result.files_deleted ? result.files_deleted.length : 0}`;
+
+                    if (result.sheet_deleted) {
+                        message += '\nGoogle Sheet: ✅ Deleted';
+                    } else if (result.sheet_error) {
+                        message += '\nGoogle Sheet: ⚠️ Could not delete';
+                    }
+
+                    alert(message);
+                    // Reload history
+                    const tabManager = new TabManager();
+                    tabManager.loadHistory();
+                } else {
+                    alert('❌ Failed to delete entry: ' + (result.detail || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Delete error:', error);
+                alert('❌ Failed to delete entry: ' + error.message);
+            }
+        }
+
+        // Show clear all confirmation dialog
+        function showClearAllConfirmation() {
+            document.getElementById('confirmationDialog').classList.add('active');
+        }
+
+        // Hide clear all confirmation dialog
+        function hideClearAllConfirmation() {
+            document.getElementById('confirmationDialog').classList.remove('active');
+        }
+
+        // Confirm clear all history
+        async function confirmClearAll() {
+            hideClearAllConfirmation();
+
+            try {
+                const response = await fetch('/api/v1/history/clear', {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Server error response:', errorText);
+                    alert(`❌ Failed to clear history: ${response.status} - ${errorText}`);
+                    return;
+                }
+
+                const result = await response.json();
+
+                if (result.success) {
+                    let message = `✅ Successfully cleared all history!\n\n`;
+                    message += `📊 Summary:\n`;
+                    message += `• History entries: ${result.entries_deleted}\n`;
+                    message += `• JSON files: ${result.files_deleted}`;
+
+                    if (result.files_failed && result.files_failed > 0) {
+                        message += ` (${result.files_failed} failed)`;
+                    }
+
+                    if (result.sheets_deleted !== undefined) {
+                        message += `\n• Google Sheets: ${result.sheets_deleted}`;
+                        if (result.sheets_failed && result.sheets_failed > 0) {
+                            message += ` (${result.sheets_failed} failed)`;
+                        }
+                    }
+
+                    alert(message);
+                    // Reload history
+                    const tabManager = new TabManager();
+                    tabManager.loadHistory();
+                } else {
+                    alert('❌ Failed to clear history: ' + JSON.stringify(result));
+                }
+            } catch (error) {
+                console.error('Clear all error:', error);
+                alert('❌ Failed to clear history: ' + error.message);
+            }
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', () => {
+            new PatentPipeline();
+            new TabManager();
+        });
+    </script>
+</body>
+</html>
