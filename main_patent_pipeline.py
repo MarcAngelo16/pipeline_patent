@@ -268,7 +268,8 @@ class PatentPipeline:
             self.logger.log_progress(i, total_main, "Main Patents", patent_id)
 
             # Report progress - Phase 1
-            self._report_progress("Phase 1: Retrieving patents from PubChem", i, total_main, patent_id)
+            phase1_msg = "Phase 1: Processing DrugBank patents" if self.source == "drugbank" else "Phase 1: Retrieving patents from PubChem"
+            self._report_progress(phase1_msg, i, total_main, patent_id)
 
             try:
                 # Process main patent
@@ -288,12 +289,14 @@ class PatentPipeline:
         patent_id = main_patent.get('publication_number', '')
 
         try:
-            # Extract metadata using PubChem JSON API
-            patent_data = self.pubchem_extractor.extract_patent_metadata(patent_id)
-
-            # Add pipeline-specific fields based on source
+            # For DrugBank source, skip PubChem enrichment (faster, use DrugBank data only)
             if self.source == "drugbank":
-                patent_data['extraction_from'] = f"DrugBank ID: {self.drugbank_id}"
+                patent_data = {
+                    'patent_id': patent_id,
+                    'title': '',  # Will be filled by Google Patents
+                    'extraction_from': f"DrugBank ID: {self.drugbank_id}",
+                    'country': main_patent.get('country', ''),
+                }
                 # Add DrugBank-specific fields
                 if 'drugbank_url' in main_patent:
                     patent_data['drugbank_url'] = main_patent['drugbank_url']
@@ -303,8 +306,15 @@ class PatentPipeline:
                     patent_data['expires_date_drugbank'] = main_patent['expires_date']
                 if 'pediatric_extension' in main_patent:
                     patent_data['pediatric_extension'] = main_patent['pediatric_extension']
-            else:
-                patent_data['extraction_from'] = f"Pubchem keyword: {self.keyword}"
+                # Add Google Patent URL
+                if 'google_patent' in main_patent:
+                    patent_data['google_patent'] = main_patent['google_patent']
+
+                return patent_data
+
+            # For PubChem source, extract metadata using PubChem JSON API
+            patent_data = self.pubchem_extractor.extract_patent_metadata(patent_id)
+            patent_data['extraction_from'] = f"Pubchem keyword: {self.keyword}"
 
             # Add URLs from original fetcher (if available)
             if 'google_patent' in main_patent:
@@ -459,6 +469,10 @@ class PatentPipeline:
                         patent['inventors_google'] = google_data.get('inventors', [])
                         patent['assignees_google'] = google_data.get('assignees', [])
                         patent['claims'] = google_data.get('claims', []) or []
+
+                        # Fill title from Google Patents if empty (DrugBank patents have no title)
+                        if not patent.get('title') and google_data.get('title'):
+                            patent['title'] = google_data.get('title', '')
 
                         # Log successful extraction
                         stats = []
