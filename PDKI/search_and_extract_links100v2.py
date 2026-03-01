@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Search and Extract Links 100 - Complete search with 100 results per page
-Based on the working pagination_tester.py with integrated search and link extraction
+Search and Extract Links 100 v2 - Uses undetected-chromedriver + SOCKS5 proxy
+Based on search_and_extract_links100.py with undetected-chromedriver for better CAPTCHA bypass
 """
 
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
+import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
+import random
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
@@ -29,28 +29,22 @@ class SearchAndExtract100:
         }
 
     def setup_stealth_driver(self):
-        """Setup Chrome driver with stealth mode and SOCKS5 proxy"""
-        options = Options()
+        """Setup undetected Chrome driver with SOCKS5 proxy"""
+        options = uc.ChromeOptions()
+        options.add_argument("--headless=new")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
-        options.add_argument("--disable-blink-features=AutomationControlled")
-        options.add_experimental_option("excludeSwitches", ["enable-automation"])
-        options.add_experimental_option('useAutomationExtension', False)
-        options.add_argument("--disable-web-security")
-        options.add_argument("--allow-running-insecure-content")
-        options.add_argument("--disable-extensions")
-        options.add_argument("--disable-plugins")
         options.add_argument("--window-size=1920,1080")
         options.add_argument("--proxy-server=socks5://nordvpn-proxy:1080")
         options.add_argument("--proxy-bypass-list=localhost,127.0.0.1")
-        options.add_argument("--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+        options.add_argument("--lang=id-ID")
+        options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
 
-        driver = webdriver.Chrome(options=options)
-
-        driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-        driver.execute_script("Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]})")
-        driver.execute_script("Object.defineProperty(navigator, 'languages', {get: () => ['en-US', 'en']})")
-
+        driver = uc.Chrome(
+            options=options,
+            driver_executable_path='/usr/local/bin/chromedriver',
+            version_main=145
+        )
         return driver
 
     def get_current_pagination_value(self, driver):
@@ -459,7 +453,7 @@ class SearchAndExtract100:
             # Save links as text file
             links_file = os.path.join(PDKI_DIR, f"extracted_links_100_{timestamp}.txt")
             with open(links_file, 'w', encoding='utf-8') as f:
-                f.write(f"EXTRACTED LINKS - 100 Results Search\n")
+                f.write(f"EXTRACTED LINKS - 100 Results Search (v2)\n")
                 f.write(f"Generated: {datetime.now()}\n")
                 f.write(f"Search: {self.results_data['search_info'].get('term', 'N/A')}\n")
                 f.write(f"Category: {self.results_data['search_info'].get('category', 'N/A')}\n")
@@ -484,7 +478,7 @@ class SearchAndExtract100:
 
 def main():
     print("=" * 70)
-    print("🔍 SEARCH AND EXTRACT LINKS 100 - Complete Search with 100 Results")
+    print("🔍 SEARCH AND EXTRACT LINKS 100 v2 - undetected-chromedriver + SOCKS5")
     print("=" * 70)
 
     searcher = SearchAndExtract100()
@@ -492,11 +486,11 @@ def main():
 
     try:
         print("🌐 Loading PDKI search page...")
-        print("🥷 Stealth mode enabled...")
+        print("🥷 Stealth mode: undetected-chromedriver + Indonesian SOCKS5 proxy...")
         driver.get("https://pdki-indonesia.dgip.go.id/search")
+        time.sleep(random.uniform(3, 6))
 
         # Check stealth success
-        time.sleep(3)
         page_source = driver.page_source
         page_length = len(page_source)
 

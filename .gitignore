@@ -1,4 +1,6 @@
 # Sensitive credentials - DO NOT COMMIT
+PDKI/pdki_config.py
+nordvpn_creds
 google_sheets_integration/oauth_token.json
 google_sheets_integration/oauth_client_secret.json
 google_sheets_integration/google_credentials.json

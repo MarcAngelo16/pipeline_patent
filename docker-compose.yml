@@ -1,6 +1,32 @@
 version: '3.8'
 
 services:
+
+  # VPN container - connects to NordVPN via OpenVPN TCP 443, exposes SOCKS5 on port 1080
+  nordvpn-proxy:
+    image: edgd1er/nordvpn-proxy:latest
+    restart: unless-stopped
+    ports:
+      - "1080:1080"
+    devices:
+      - /dev/net/tun
+    cap_add:
+      - NET_ADMIN
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1  # removes need for privileged mode
+      - net.ipv4.ip_forward=1               # allows packet forwarding
+      - net.ipv4.conf.all.rp_filter=2       # loose reverse path filtering
+      - net.ipv6.conf.all.disable_ipv6=1    # disable ipv6 on vpn container
+      - net.ipv6.conf.all.forwarding=1      # ipv6 forwarding
+    environment:
+      - NORDVPN_COUNTRY=Indonesia
+      - NORDVPN_PROTOCOL=tcp
+      - NORDVPN_CATEGORY=p2p
+      - IPV6=off                            # disable ipv6 inside nordvpn app
+    secrets:
+      - NORDVPN_CREDS
+
+  # Patent pipeline container
   patent-pipeline:
     build:
       context: .
@@ -14,11 +40,25 @@ services:
     environment:
       - PYTHONPATH=/app/patent_pipeline
       - DISPLAY=:99
+      # socks5h = proxy handles DNS resolution (avoids IPv6 DNS lookups causing errors)
+      - http_proxy=socks5h://nordvpn-proxy:1080
+      - https_proxy=socks5h://nordvpn-proxy:1080
+      - HTTP_PROXY=socks5h://nordvpn-proxy:1080
+      - HTTPS_PROXY=socks5h://nordvpn-proxy:1080
+      # exclude localhost from proxy so Selenium/ChromeDriver internal comms are not affected
+      - no_proxy=localhost,127.0.0.1,172.18.0.0/16
+      - NO_PROXY=localhost,127.0.0.1,172.18.0.0/16
     command: tail -f /dev/null
     restart: unless-stopped
+    depends_on:
+      - nordvpn-proxy
     deploy:
       resources:
         limits:
           memory: 2G
         reservations:
           memory: 1G
+
+secrets:
+  NORDVPN_CREDS:
+    file: ./nordvpn_creds
