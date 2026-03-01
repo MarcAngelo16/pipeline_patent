@@ -1,0 +1,22 @@
+{
+  "search_info": {
+    "term": "insulin",
+    "category": "patent",
+    "timestamp": 1772405071
+  },
+  "pagination_changes": [
+    {
+      "from": "10",
+      "to": "100",
+      "success": true,
+      "timestamp": 1772405068
+    }
+  ],
+  "extracted_links": [],
+  "screenshots": [
+    "/app/patent_pipeline/PDKI/before_submit_1772405071.png",
+    "/app/patent_pipeline/PDKI/search_results_1772405071.png",
+    "/app/reverse_engineering/final_results_1772405086.png"
+  ],
+  "errors": []
+}

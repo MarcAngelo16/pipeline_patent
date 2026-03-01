@@ -13,7 +13,10 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.common.exceptions import TimeoutException, ElementNotInteractableException
 import time
 import json
+import os
 from datetime import datetime
+
+PDKI_DIR = os.path.dirname(os.path.abspath(__file__))
 
 class SearchAndExtract100:
     def __init__(self):
@@ -312,7 +315,7 @@ class SearchAndExtract100:
 
             # Take screenshot before submit
             timestamp = int(time.time())
-            before_screenshot = f"/app/reverse_engineering/before_submit_{timestamp}.png"
+            before_screenshot = os.path.join(PDKI_DIR,f"before_submit_{timestamp}.png")
             driver.save_screenshot(before_screenshot)
             self.results_data['screenshots'].append(before_screenshot)
 
@@ -331,7 +334,7 @@ class SearchAndExtract100:
                 print(f"   ✅ Got results page ({page_length:,} characters)")
 
                 # Take screenshot after results
-                after_screenshot = f"/app/reverse_engineering/search_results_{timestamp}.png"
+                after_screenshot = os.path.join(PDKI_DIR,f"search_results_{timestamp}.png")
                 driver.save_screenshot(after_screenshot)
                 self.results_data['screenshots'].append(after_screenshot)
 
@@ -447,12 +450,12 @@ class SearchAndExtract100:
 
         try:
             # Save JSON report
-            json_file = f"/app/reverse_engineering/search_100_results_{timestamp}.json"
+            json_file = json_file = os.path.join(PDKI_DIR,f"search_100_results_{timestamp}.json")
             with open(json_file, 'w', encoding='utf-8') as f:
                 json.dump(self.results_data, f, indent=2, ensure_ascii=False)
 
             # Save links as text file
-            links_file = f"/app/reverse_engineering/extracted_links_100_{timestamp}.txt"
+            links_file = os.path.join(PDKI_DIR,f"extracted_links_100_{timestamp}.txt")
             with open(links_file, 'w', encoding='utf-8') as f:
                 f.write(f"EXTRACTED LINKS - 100 Results Search\n")
                 f.write(f"Generated: {datetime.now()}\n")
