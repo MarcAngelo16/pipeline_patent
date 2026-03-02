@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y \
     unzip \
     curl \
     xvfb \
+    x11vnc \
     # Chrome dependencies
     fonts-liberation \
     libasound2 \

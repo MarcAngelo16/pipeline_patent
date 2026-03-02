@@ -9,6 +9,7 @@ services:
     container_name: patent-pipeline
     ports:
       - "8000:8000"
+      - "5900:5900"   # VNC port for remote desktop to solve captcha
     volumes:
       - .:/app/patent_pipeline
     environment:
