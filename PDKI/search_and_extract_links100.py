@@ -29,19 +29,34 @@ class SearchAndExtract100:
         }
 
     def setup_stealth_driver(self):
-        """Attach to existing Chrome instance via remote debugging"""
+        """Setup Chrome driver with full stealth mode"""
         options = Options()
-        options.add_experimental_option("debuggerAddress", "127.0.0.1:9222")
-        
+        options.add_argument("--headless")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+
+        # STEALTH MODE - Anti-bot detection options
+        options.add_argument("--disable-blink-features=AutomationControlled")
+        options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        options.add_experimental_option('useAutomationExtension', False)
+
+        # Additional stealth options
+        options.add_argument("--disable-web-security")
+        options.add_argument("--allow-running-insecure-content")
+        options.add_argument("--disable-extensions")
+        options.add_argument("--disable-plugins")
+        options.add_argument("--disable-images")
+        options.add_argument("--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebDriver/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+
+        # Larger window for better visibility
+        options.add_argument("--window-size=1920,1080")
+
         driver = webdriver.Chrome(options=options)
-        
-        # Force navigate to PDKI search page
-        driver.get("https://pdki-indonesia.dgip.go.id/search")
-        time.sleep(5)  # wait for page to load
-        timestamp = int(time.time())
-        debug_screenshot = os.path.join(PDKI_DIR, f"debug_screen_{timestamp}.png")
-        driver.save_screenshot(debug_screenshot)
-        print(f"📸 Debug screenshot saved: {debug_screenshot}")
+
+        # STEALTH SCRIPTS - Hide webdriver properties
+        driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+        driver.execute_script("Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]})")
+        driver.execute_script("Object.defineProperty(navigator, 'languages', {get: () => ['en-US', 'en']})")
 
         return driver
 
@@ -476,7 +491,7 @@ def main():
     try:
         print("🌐 Loading PDKI search page...")
         print("🥷 Stealth mode enabled...")
-        #driver.get("https://pdki-indonesia.dgip.go.id/search")
+        driver.get("https://pdki-indonesia.dgip.go.id/search")
 
         # Check stealth success
         time.sleep(3)
@@ -538,6 +553,8 @@ def main():
     except Exception as e:
         print(f"❌ Fatal error: {e}")
 
+    finally:
+        driver.quit()
 
 if __name__ == "__main__":
     main()

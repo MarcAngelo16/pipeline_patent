@@ -10,6 +10,7 @@ google_sheets_integration/local_setup/*.json
 # Environment variables
 .env
 .env.local
+PDKI/.env
 
 # Output files
 output/
