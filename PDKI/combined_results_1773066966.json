@@ -1,0 +1,47 @@
+{
+  "generated": "2026-03-09 14:36:06.138455",
+  "batches": [
+    {
+      "judul": "OSTEOPROTEGERIN",
+      "nama_inventor": null,
+      "nama_pemegang": null
+    },
+    {
+      "judul": "OSTEOPROTEGERIN",
+      "nama_inventor": "William J",
+      "nama_pemegang": null
+    },
+    {
+      "judul": "OSTEOPROTEGERIN",
+      "nama_inventor": null,
+      "nama_pemegang": "PHARMEXA"
+    }
+  ],
+  "total_unique_links": 6,
+  "links": [
+    {
+      "url": "https://pdki-indonesia.dgip.go.id/link/5030303139393630333835317c706174656e74",
+      "text": "OSTEOPROTEGERIN\nDitarik Kembali\nP00199603851"
+    },
+    {
+      "url": "https://pdki-indonesia.dgip.go.id/link/5730303230303330323034367c706174656e74",
+      "text": "OSTEOPROTEGERIN DALAM AIR SUSU\nDitarik Kembali\nW00200302046"
+    },
+    {
+      "url": "https://pdki-indonesia.dgip.go.id/link/5030303230313430363330387c706174656e74",
+      "text": "KOMPOSISI TURUNAN OSTEOPROTEGERIN DAN PENGGUNAANNYA\nDihapus\nP00201406308"
+    },
+    {
+      "url": "https://pdki-indonesia.dgip.go.id/link/5730303139393930313232357c706174656e74",
+      "text": "PROTEIN PENGIKAT OSTEOPROTEGERIN DAN RESEPTOR\nBerakhir\nW00199901225"
+    },
+    {
+      "url": "https://pdki-indonesia.dgip.go.id/link/5730303230303130303832327c706174656e74",
+      "text": "METODE PENURUNAN AKTIVITAS LIGAN OSTEOPROTEGERIN\nDibatalkan\nW00200100822"
+    },
+    {
+      "url": "https://pdki-indonesia.dgip.go.id/link/5730303230303930303234397c706174656e74",
+      "text": "PROTEIN PENGIKAT OSTEOPROTEGERIN DAN RESEPTOR (PECAHAN W991225)\nBerakhir\nW00200900249"
+    }
+  ]
+}

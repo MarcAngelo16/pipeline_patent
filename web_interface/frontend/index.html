@@ -19,7 +19,7 @@
         }
 
         .container {
-            max-width: 800px;
+            max-width: 1100px;
             margin: 0 auto;
             background: white;
             border-radius: 12px;
@@ -543,6 +543,344 @@
             font-size: 1.1em;
         }
 
+        /* ── Patent Analysis Styles ─────────────────────────────────────── */
+        .pa-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        .pa-analysis-list {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .pa-analysis-card {
+            background: white;
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.25s;
+        }
+        .pa-analysis-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102,126,234,0.12);
+        }
+        .pa-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .pa-patent-id {
+            font-weight: 700;
+            color: #667eea;
+            font-size: 1.05em;
+        }
+        .pa-card-title {
+            font-size: 1.1em;
+            margin: 6px 0 4px;
+            color: #333;
+        }
+        .pa-card-meta {
+            font-size: 0.85em;
+            color: #6c757d;
+            display: flex;
+            gap: 16px;
+        }
+        .pa-status {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .pa-status-extracting { background: #fff3cd; color: #856404; }
+        .pa-status-ready      { background: #d4edda; color: #155724; }
+        .pa-status-error      { background: #f8d7da; color: #721c24; }
+        .pa-status-running    { background: #cce5ff; color: #004085; }
+        .pa-status-completed  { background: #d4edda; color: #155724; }
+        .pa-status-failed     { background: #f8d7da; color: #721c24; }
+        .pa-status-pending    { background: #e2e3e5; color: #383d41; }
+
+        .pa-section {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        .pa-section-toggle {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8f9fa;
+            padding: 14px 18px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #333;
+            user-select: none;
+        }
+        .pa-section-toggle:hover { background: #e9ecef; }
+        .pa-section-body { padding: 20px; }
+        .pa-section-batch { background: #f0f4ff; border-color: #c5cef9; }
+
+        .pa-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+        }
+        .pa-table th, .pa-table td {
+            border: 1px solid #dee2e6;
+            padding: 8px 12px;
+            text-align: left;
+        }
+        .pa-table th { background: #f8f9fa; font-weight: 600; }
+        .pa-results-table td {
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .pa-stats-row {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .pa-stat-box {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 14px 10px;
+            text-align: center;
+        }
+        .pa-stat-num { font-size: 1.8em; font-weight: 700; }
+        .pa-stat-lbl { font-size: 0.75em; color: #6c757d; margin-top: 2px; }
+        .pa-stat-success .pa-stat-num { color: #28a745; }
+        .pa-stat-warn    .pa-stat-num { color: #ffc107; }
+        .pa-stat-danger  .pa-stat-num { color: #dc3545; }
+        .pa-stat-neutral .pa-stat-num { color: #667eea; }
+
+        .pa-batch-terms {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .pa-term-checkbox {
+            display: flex;
+            align-items: center;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 7px 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+        .pa-term-checkbox:hover  { border-color: #667eea; background: #f8f9ff; }
+        .pa-term-checkbox.chosen { border-color: #667eea; background: #eef0ff; }
+        .pa-term-label { margin-left: 8px; font-size: 0.9em; }
+        .pa-field-badge {
+            display: inline-block;
+            padding: 1px 7px;
+            border-radius: 8px;
+            font-size: 0.75em;
+            font-weight: 600;
+            margin-left: 6px;
+        }
+        .pa-field-title    { background: #cce5ff; color: #004085; }
+        .pa-field-inventor { background: #d4edda; color: #155724; }
+        .pa-field-assignee { background: #fce8ff; color: #5a005a; }
+
+        .pa-pagination-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .pa-pagination-btn {
+            padding: 6px 14px;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .pa-pagination-btn:hover { border-color: #667eea; }
+        .pa-pagination-btn.active { border-color: #667eea; background: #667eea; color: white; }
+
+        .pa-batch-progress {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #667eea;
+            font-weight: 500;
+            padding: 12px 0;
+        }
+        @keyframes pa-spin { to { transform: rotate(360deg); } }
+        .pa-spinner {
+            width: 40px; height: 40px;
+            border: 4px solid #e1e5e9;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: pa-spin 0.8s linear infinite;
+            flex-shrink: 0;
+        }
+        .pa-spinner-small {
+            width: 16px; height: 16px;
+            border-width: 2px;
+        }
+        .pa-loading-card {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+        .pa-loading-card .pa-spinner { margin: 0 auto 16px; }
+        .pa-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            border-radius: 6px;
+            padding: 14px 18px;
+            margin: 12px 0;
+        }
+        .pa-empty {
+            text-align: center;
+            padding: 50px 20px;
+            color: #6c757d;
+            font-size: 1.05em;
+        }
+        .pa-result-link {
+            color: #1a73e8;
+            text-decoration: none;
+        }
+        .pa-result-link:hover { text-decoration: underline; }
+        .pa-cat {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.78em;
+            font-weight: 600;
+        }
+        .pa-cat-relevant     { background: #d4edda; color: #155724; }
+        .pa-cat-not_relevant { background: #f8d7da; color: #721c24; }
+        .pa-cat-uncertain    { background: #fff3cd; color: #856404; }
+
+        .pa-input-inline {
+            width: 100%;
+            padding: 5px 8px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+        .pa-select-inline {
+            padding: 5px 8px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            font-size: 0.9em;
+            background: white;
+        }
+        .pa-dashboard-header {
+            padding: 24px 40px 0;
+            border-bottom: 1px solid #dee2e6;
+            margin-bottom: 0;
+        }
+        .btn-back {
+            background: none;
+            border: none;
+            color: #667eea;
+            cursor: pointer;
+            font-size: 0.95em;
+            padding: 4px 0;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        .btn-back:hover { text-decoration: underline; }
+        .btn-primary {
+            padding: 10px 22px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .btn-primary:hover:not(:disabled) { opacity: 0.88; }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-secondary {
+            padding: 10px 22px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-secondary:hover { background: #5a6268; }
+        .pa-modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+            display: flex; align-items: center; justify-content: center; z-index: 9999;
+        }
+        .pa-modal {
+            background: #fff; border-radius: 12px; padding: 32px 28px;
+            max-width: 420px; width: 90%; box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+        }
+        .pa-modal h3 { margin: 0 0 12px; font-size: 1.2em; color: #333; }
+        .pa-modal p  { margin: 0 0 24px; color: #555; font-size: 0.95em; line-height: 1.5; }
+        .pa-modal-actions { display: flex; gap: 12px; justify-content: flex-end; }
+        .btn-danger {
+            padding: 8px 20px; background: #dc3545; color: #fff;
+            border: none; border-radius: 6px; font-size: 0.95em; cursor: pointer;
+        }
+        .btn-danger:hover   { background: #c82333; }
+        .btn-danger:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn-cancel {
+            padding: 8px 20px; background: #e9ecef; color: #333;
+            border: none; border-radius: 6px; font-size: 0.95em; cursor: pointer;
+        }
+        .btn-cancel:hover { background: #d1d5d9; }
+        .btn-delete-card {
+            padding: 4px 10px; background: transparent; color: #dc3545;
+            border: 1px solid #dc3545; border-radius: 5px; font-size: 0.8em;
+            cursor: pointer; line-height: 1;
+        }
+        .btn-delete-card:hover { background: #dc3545; color: #fff; }
+        .btn-danger-sm {
+            padding: 4px 10px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.82em;
+            cursor: pointer;
+        }
+        .btn-danger-sm:hover { background: #c82333; }
+        .btn-primary-sm {
+            padding: 4px 10px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.82em;
+            cursor: pointer;
+        }
+        .btn-primary-sm:hover { background: #556cd6; }
+        .btn-secondary-sm {
+            padding: 4px 10px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.82em;
+            cursor: pointer;
+        }
+        .btn-secondary-sm:hover { background: #5a6268; }
+
     </style>
 </head>
 <body>
@@ -554,6 +892,7 @@
             <div class="tab-navigation">
                 <button class="tab-btn active" data-tab="search">🔍 Search Patents</button>
                 <button class="tab-btn" data-tab="history">📜 Search History</button>
+                <button class="tab-btn" data-tab="analysis">🔬 Patent Analysis</button>
             </div>
         </div>
 
@@ -723,6 +1062,14 @@
             </div>
         </div>
         <!-- End History Page -->
+
+        <!-- Patent Analysis Page -->
+        <div class="page-section" id="analysisPage">
+            <div id="patentAnalysisApp" style="padding: 40px;">
+                <!-- Vue renders here -->
+            </div>
+        </div>
+        <!-- End Patent Analysis Page -->
     </div>
 
     <!-- Confirmation Dialog -->
@@ -1103,6 +1450,11 @@
                 } else if (tabName === 'history') {
                     document.getElementById('historyPage').classList.add('active');
                     this.loadHistory();
+                } else if (tabName === 'analysis') {
+                    document.getElementById('analysisPage').classList.add('active');
+                    if (window.patentAnalysisApp) {
+                        window.patentAnalysisApp.loadAnalyses();
+                    }
                 }
             }
 
@@ -1283,6 +1635,934 @@
             new PatentPipeline();
             new TabManager();
         });
+    </script>
+
+    <!-- Vue 3 CDN -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+
+    <script>
+    // ── Patent Analysis Vue App ──────────────────────────────────────────────
+    const { createApp } = Vue;
+
+    const patentAnalysisAppInstance = createApp({
+        template: `
+<div>
+    <!-- ═══ DELETE CONFIRMATION MODAL ═══════════════════════════════════ -->
+    <div v-if="showDeleteModal" class="pa-modal-overlay">
+        <div class="pa-modal">
+            <h3>Delete Analysis?</h3>
+            <p>
+                This will permanently delete <strong>{{ deleteTargetTitle }}</strong>
+                and all its batches and results. This cannot be undone.
+            </p>
+            <div class="pa-modal-actions">
+                <button class="btn-cancel" @click="cancelDelete" :disabled="deletingAnalysis">Cancel</button>
+                <button class="btn-danger" @click="confirmDelete" :disabled="deletingAnalysis">
+                    {{ deletingAnalysis ? 'Deleting…' : 'Delete' }}
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ LIST VIEW ═══════════════════════════════════════════════════ -->
+    <div v-if="view === 'list'">
+        <div class="pa-header-row">
+            <div>
+                <h2 style="font-size:1.8em;color:#333;margin-bottom:6px;">Patent Analysis</h2>
+                <p style="color:#6c757d;">Analyse Google Patents against the PDKI database</p>
+            </div>
+            <button class="btn-primary" @click="startCreate">+ New Analysis</button>
+        </div>
+
+        <div v-if="loadingList" class="pa-loading-card">
+            <div class="pa-spinner"></div>
+            <p>Loading analyses…</p>
+        </div>
+        <div v-else-if="analyses.length === 0" class="pa-empty">
+            <div style="font-size:3em;margin-bottom:16px;">🔬</div>
+            <p>No analyses yet. Click <strong>+ New Analysis</strong> to get started.</p>
+        </div>
+        <div v-else class="pa-analysis-list">
+            <div v-for="a in analyses" :key="a.id"
+                 class="pa-analysis-card"
+                 @click="openDashboard(a.id)">
+                <div class="pa-card-header">
+                    <span class="pa-patent-id">{{ a.google_patent_id }}</span>
+                    <span :class="'pa-status pa-status-' + a.status">{{ a.status }}</span>
+                </div>
+                <div class="pa-card-title">
+                    {{ (a.patent_data && a.patent_data.title) ? a.patent_data.title : '—' }}
+                </div>
+                <div class="pa-card-meta">
+                    <span>{{ a.total_results || 0 }} results</span>
+                    <span>Updated {{ formatDate(a.updated_at) }}</span>
+                    <span style="margin-left:auto;display:flex;align-items:center;gap:12px;">
+                        <button class="btn-delete-card"
+                                @click.stop="promptDelete(a.id, a.google_patent_id)">
+                            🗑 Delete
+                        </button>
+                        <span style="color:#667eea;font-weight:600;">Open →</span>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ CREATE VIEW ══════════════════════════════════════════════════ -->
+    <div v-if="view === 'create'">
+        <button class="btn-back" @click="backToList">← Back to list</button>
+        <h2 style="font-size:1.6em;color:#333;margin-bottom:20px;">New Patent Analysis</h2>
+
+        <div v-if="!creating" style="max-width:480px;">
+            <div class="form-group" style="margin-bottom:20px;">
+                <label style="display:block;font-weight:600;margin-bottom:8px;color:#333;">
+                    Google Patent ID
+                </label>
+                <input
+                    type="text"
+                    class="pa-input-inline"
+                    v-model="patentIdInput"
+                    placeholder="e.g. US9233943B2"
+                    @keyup.enter="submitCreate"
+                    style="font-size:1em;padding:10px 14px;border:2px solid #e1e5e9;border-radius:8px;"
+                />
+                <small style="display:block;margin-top:6px;color:#6c757d;">
+                    Enter the patent ID exactly as it appears in the Google Patents URL.
+                </small>
+            </div>
+            <button class="btn-primary" @click="submitCreate" :disabled="!patentIdInput.trim()">
+                Start Extraction
+            </button>
+            <div v-if="extractionError" class="pa-error" style="margin-top:16px;">{{ extractionError }}</div>
+        </div>
+
+        <div v-else>
+            <div class="pa-loading-card" style="padding:40px 20px;">
+                <div class="pa-spinner"></div>
+                <p style="margin-top:14px;font-size:1.05em;color:#333;">
+                    Extracting patent data for <strong>{{ patentIdInput }}</strong>…
+                </p>
+                <p style="color:#6c757d;font-size:0.9em;margin-top:8px;">
+                    This may take 1–2 minutes. Fetching Google Patents + running AI planning.
+                </p>
+            </div>
+            <div v-if="extractionError" class="pa-error">{{ extractionError }}</div>
+        </div>
+    </div>
+
+    <!-- ═══ DASHBOARD VIEW ══════════════════════════════════════════════ -->
+    <div v-if="view === 'dashboard' && analysis">
+        <button class="btn-back" @click="backToList">← Back to list</button>
+
+        <!-- Header -->
+        <div style="margin-bottom:24px;">
+            <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;justify-content:space-between;">
+                <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;">
+                    <h2 style="font-size:1.6em;color:#333;">{{ analysis.google_patent_id }}</h2>
+                    <span :class="'pa-status pa-status-' + analysis.status">{{ analysis.status }}</span>
+                </div>
+                <button class="btn-danger"
+                        @click="promptDelete(analysis.id, analysis.google_patent_id)"
+                        style="font-size:0.88em;padding:6px 14px;">
+                    🗑 Delete Analysis
+                </button>
+            </div>
+            <p v-if="analysis.patent_data && analysis.patent_data.title"
+               style="color:#444;font-size:1.05em;margin-top:6px;">
+                {{ analysis.patent_data.title }}
+            </p>
+            <p v-if="analysis.status === 'extracting'" style="color:#667eea;margin-top:8px;">
+                <span class="pa-spinner-small pa-spinner" style="display:inline-block;vertical-align:middle;margin-right:6px;"></span>
+                Extracting patent data… refreshing automatically.
+            </p>
+            <div v-if="analysis.status === 'error'" class="pa-error" style="margin-top:8px;">
+                Error: {{ analysis.error_message }}
+            </div>
+        </div>
+
+        <!-- ── Source Patent ── -->
+        <div class="pa-section">
+            <div class="pa-section-toggle" @click="showSourcePatent = !showSourcePatent">
+                <span>📄 Source Patent</span>
+                <span>{{ showSourcePatent ? '▲' : '▼' }}</span>
+            </div>
+            <div v-if="showSourcePatent && analysis.patent_data" class="pa-section-body">
+                <p><strong>Abstract:</strong><br>
+                    <span style="color:#555;font-size:0.95em;">
+                        {{ analysis.patent_data.abstract || '—' }}
+                    </span>
+                </p>
+                <p style="margin-top:12px;"><strong>Inventors:</strong>
+                    {{ (analysis.patent_data.inventors || []).join(', ') || '—' }}
+                </p>
+                <p style="margin-top:6px;"><strong>Assignees:</strong>
+                    {{ (analysis.patent_data.assignees || []).join(', ') || '—' }}
+                </p>
+            </div>
+            <div v-if="showSourcePatent && !analysis.patent_data" class="pa-section-body">
+                <p style="color:#6c757d;">No patent data yet.</p>
+            </div>
+        </div>
+
+        <!-- ── Search Plan ── -->
+        <div class="pa-section">
+            <div class="pa-section-toggle" @click="showSearchPlan = !showSearchPlan">
+                <span>🗂 Search Plan ({{ editablePlan.length }} terms)</span>
+                <span>{{ showSearchPlan ? '▲' : '▼' }}</span>
+            </div>
+            <div v-if="showSearchPlan" class="pa-section-body">
+                <table class="pa-table" style="margin-bottom:12px;">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Search Term</th>
+                            <th>Field</th>
+                            <th>Remove</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="(item, idx) in editablePlan" :key="idx">
+                            <td>{{ idx + 1 }}</td>
+                            <td>
+                                <input class="pa-input-inline" v-model="item.term" />
+                            </td>
+                            <td>
+                                <select class="pa-select-inline" v-model="item.field">
+                                    <option value="title">title</option>
+                                    <option value="inventor">inventor</option>
+                                    <option value="assignee">assignee</option>
+                                </select>
+                            </td>
+                            <td>
+                                <button class="btn-danger-sm" @click="removePlanItem(idx)">✕</button>
+                            </td>
+                        </tr>
+                        <tr v-if="editablePlan.length === 0">
+                            <td colspan="4" style="text-align:center;color:#6c757d;padding:16px;">
+                                No terms in plan.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                    <button class="btn-secondary-sm" @click="addPlanItem">+ Add Row</button>
+                    <button class="btn-primary-sm" @click="savePlan" :disabled="savingPlan">
+                        {{ savingPlan ? 'Saving…' : '💾 Save Plan' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Run New Batch ── -->
+        <div class="pa-section pa-section-batch" v-if="analysis.status === 'ready'">
+            <div class="pa-section-toggle" @click="showBatchPanel = !showBatchPanel"
+                 style="background:#e8edff;">
+                <span>🚀 Run New Batch Search</span>
+                <span>{{ showBatchPanel ? '▲' : '▼' }}</span>
+            </div>
+            <div v-if="showBatchPanel" class="pa-section-body">
+                <p style="color:#666;font-size:0.9em;margin-bottom:12px;">
+                    Each row is one PDKI search. Fill any combination of fields — PDKI filters by all filled fields simultaneously.
+                </p>
+                <table class="pa-table" style="margin-bottom:12px;">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Writer</th>
+                            <th>Assignee</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="(row, idx) in batchSearches" :key="idx">
+                            <td>
+                                <select v-model="row.judul" class="pa-select-inline">
+                                    <option :value="null">(empty)</option>
+                                    <option v-for="opt in titleOptions" :key="opt" :value="opt">{{ opt }}</option>
+                                </select>
+                            </td>
+                            <td>
+                                <select v-model="row.nama_inventor" class="pa-select-inline">
+                                    <option :value="null">(empty)</option>
+                                    <option v-for="opt in inventorOptions" :key="opt" :value="opt">{{ opt }}</option>
+                                </select>
+                            </td>
+                            <td>
+                                <select v-model="row.nama_pemegang" class="pa-select-inline">
+                                    <option :value="null">(empty)</option>
+                                    <option v-for="opt in assigneeOptions" :key="opt" :value="opt">{{ opt }}</option>
+                                </select>
+                            </td>
+                            <td>
+                                <button @click="removeBatchSearch(idx)" class="btn-danger-sm"
+                                        :disabled="batchSearches.length === 1">✕</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <button @click="addBatchSearch" class="btn-secondary-sm" style="margin-bottom:20px;">+ Add Search</button>
+
+                <p style="font-weight:600;margin-bottom:8px;">Results per page:</p>
+                <div class="pa-pagination-row" style="margin-bottom:16px;">
+                    <button
+                        v-for="n in [10, 50, 100]" :key="n"
+                        class="pa-pagination-btn"
+                        :class="{ active: pagination === n }"
+                        @click="pagination = n">
+                        {{ n }}
+                    </button>
+                </div>
+
+                <div v-if="runningBatch" class="pa-batch-progress">
+                    <div class="pa-spinner pa-spinner-small"></div>
+                    Batch running… polling for completion.
+                </div>
+                <div v-else>
+                    <button
+                        class="btn-primary"
+                        @click="runBatch"
+                        :disabled="!hasValidSearches">
+                        ▶ Run Search Batch
+                    </button>
+                    <span v-if="!hasValidSearches" style="margin-left:12px;color:#6c757d;font-size:0.9em;">
+                        Fill at least one field in a search row.
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Stats ── -->
+        <div class="pa-stats-row">
+            <div class="pa-stat-box pa-stat-neutral">
+                <div class="pa-stat-num">{{ stats.total }}</div>
+                <div class="pa-stat-lbl">Total Results</div>
+            </div>
+            <div class="pa-stat-box">
+                <div class="pa-stat-num" style="color:#333;">{{ stats.analyzed }}</div>
+                <div class="pa-stat-lbl">Analyzed</div>
+            </div>
+            <div class="pa-stat-box">
+                <div class="pa-stat-num" style="color:#6c757d;">{{ stats.unanalyzed }}</div>
+                <div class="pa-stat-lbl">Unanalyzed</div>
+            </div>
+            <div class="pa-stat-box pa-stat-success">
+                <div class="pa-stat-num">{{ stats.relevant }}</div>
+                <div class="pa-stat-lbl">Relevant</div>
+            </div>
+            <div class="pa-stat-box pa-stat-danger">
+                <div class="pa-stat-num">{{ stats.not_relevant }}</div>
+                <div class="pa-stat-lbl">Not Relevant</div>
+            </div>
+            <div class="pa-stat-box pa-stat-warn">
+                <div class="pa-stat-num">{{ stats.uncertain }}</div>
+                <div class="pa-stat-lbl">Uncertain</div>
+            </div>
+        </div>
+
+        <!-- ── Batch History ── -->
+        <div class="pa-section" style="margin-bottom:20px;">
+            <div class="pa-section-toggle" @click="showBatchHistory = !showBatchHistory">
+                <span>📋 Batch History ({{ batches.length }})</span>
+                <span>{{ showBatchHistory ? '▲' : '▼' }}</span>
+            </div>
+            <div v-if="showBatchHistory" class="pa-section-body" style="padding:0;">
+                <table class="pa-table">
+                    <thead>
+                        <tr>
+                            <th>ID (short)</th>
+                            <th>Status</th>
+                            <th>Terms</th>
+                            <th>Pagination</th>
+                            <th>Hits</th>
+                            <th>Created</th>
+                            <th>Completed</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="b in batches" :key="b.id">
+                            <td style="font-family:monospace;font-size:0.8em;">{{ b.id.slice(0,8) }}…</td>
+                            <td><span :class="'pa-status pa-status-' + b.status">{{ b.status }}</span></td>
+                            <td style="font-size:0.85em;">
+                                <div v-for="(s,i) in (b.batch_config && b.batch_config.searches || [])" :key="i"
+                                     style="margin-bottom:2px;">
+                                    <span v-if="s.judul" class="pa-field-badge pa-field-title" style="margin-right:3px;">{{ s.judul }}</span>
+                                    <span v-if="s.nama_inventor" class="pa-field-badge pa-field-inventor" style="margin-right:3px;">{{ s.nama_inventor }}</span>
+                                    <span v-if="s.nama_pemegang" class="pa-field-badge pa-field-assignee">{{ s.nama_pemegang }}</span>
+                                </div>
+                            </td>
+                            <td>{{ b.batch_config && b.batch_config.pagination }}</td>
+                            <td>{{ b.hit_count }}</td>
+                            <td style="font-size:0.85em;">{{ formatDate(b.created_at) }}</td>
+                            <td style="font-size:0.85em;">{{ b.completed_at ? formatDate(b.completed_at) : '—' }}</td>
+                        </tr>
+                        <tr v-if="batches.length === 0">
+                            <td colspan="7" style="text-align:center;color:#6c757d;padding:16px;">
+                                No batches run yet.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ── Results Table ── -->
+        <div class="pa-section">
+            <div class="pa-section-toggle" @click="showResults = !showResults">
+                <span>📊 Results ({{ results.length }})</span>
+                <span>{{ showResults ? '▲' : '▼' }}</span>
+            </div>
+            <div v-if="showResults" class="pa-section-body" style="padding:0;overflow-x:auto;">
+
+                <!-- Categorise controls -->
+                <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+                            padding:12px 16px;border-bottom:1px solid #e9ecef;">
+                    <button class="btn-primary-sm"
+                            @click="categorizeAll"
+                            :disabled="uncategorizedCount === 0 || !!categorizingJob">
+                        🤖 Categorise All Uncategorised ({{ uncategorizedCount }})
+                    </button>
+                    <button class="btn-secondary-sm"
+                            @click="categorizeSelected"
+                            :disabled="selectedUncategorizedCount === 0 || !!categorizingJob">
+                        Categorise Selected ({{ selectedUncategorizedCount }})
+                    </button>
+
+                    <!-- Progress bar -->
+                    <div v-if="categorizingJob" style="flex:1;min-width:180px;">
+                        <div style="background:#e9ecef;border-radius:4px;height:8px;overflow:hidden;">
+                            <div :style="{
+                                width: (categorizeProgress.total > 0
+                                    ? (categorizeProgress.done / categorizeProgress.total * 100)
+                                    : 0) + '%',
+                                background:'#667eea',height:'100%',transition:'width 0.4s'
+                            }"></div>
+                        </div>
+                        <small style="color:#667eea;">
+                            Categorising {{ categorizeProgress.done }}/{{ categorizeProgress.total }}…
+                        </small>
+                    </div>
+
+                    <!-- Open Google Sheet button -->
+                    <button class="btn-secondary-sm"
+                            @click="openGoogleSheet"
+                            :disabled="!analysis.sheet_url"
+                            :title="analysis.sheet_url ? 'Open Google Sheet' : 'Categorise results first to generate the sheet'"
+                            style="margin-left:auto;">
+                        📊 Open Google Sheet
+                    </button>
+                </div>
+
+                <div v-if="results.length === 0" class="pa-empty">
+                    No results yet. Run a batch search to populate this table.
+                </div>
+                <table v-else class="pa-table pa-results-table">
+                    <thead>
+                        <tr>
+                            <th style="width:32px;">
+                                <input type="checkbox" @change="toggleSelectAll" :checked="allSelected" />
+                            </th>
+                            <th>#</th>
+                            <th>Title / URL</th>
+                            <th>Status</th>
+                            <th>Found By</th>
+                            <th style="width:52px;">Score</th>
+                            <th style="width:120px;">Category</th>
+                            <th>Reasoning</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="(r, idx) in results" :key="r.id">
+                            <td>
+                                <input type="checkbox" :value="r.id" v-model="selectedResultIds" />
+                            </td>
+                            <td>{{ idx + 1 }}</td>
+                            <td style="max-width:280px;">
+                                <a class="pa-result-link" :href="r.url" target="_blank">
+                                    {{ (r.detail && r.detail.title) ? r.detail.title : r.text || r.url }}
+                                </a>
+                            </td>
+                            <td>{{ (r.detail && r.detail.status) ? r.detail.status : '—' }}</td>
+                            <td>
+                                <span v-for="(tag, ti) in (r.found_by || [])" :key="ti"
+                                      style="display:inline-block;background:#e9ecef;border-radius:8px;
+                                             padding:1px 7px;font-size:0.78em;margin:1px 2px;">
+                                    {{ tag }}
+                                </span>
+                            </td>
+                            <td style="text-align:center;font-size:0.85em;">
+                                {{ r.score != null ? r.score : '—' }}
+                            </td>
+                            <td>
+                                <select v-if="r.category"
+                                        :value="r.category"
+                                        @change="updateCategory(r.id, $event.target.value)"
+                                        :class="'pa-cat pa-cat-' + r.category"
+                                        style="border:1px solid #ccc;border-radius:6px;
+                                               padding:2px 6px;cursor:pointer;font-size:0.82em;">
+                                    <option value="relevant">relevant</option>
+                                    <option value="uncertain">uncertain</option>
+                                    <option value="not_relevant">not relevant</option>
+                                </select>
+                                <span v-else style="color:#6c757d;font-size:0.85em;">—</span>
+                            </td>
+                            <td style="max-width:260px;font-size:0.82em;color:#555;">
+                                <span v-if="r.reasoning" @click="toggleResultExpand(r.id)"
+                                      style="cursor:pointer;">
+                                    <span v-if="expandedResultId === r.id">{{ r.reasoning }}</span>
+                                    <span v-else>
+                                        {{ r.reasoning.slice(0, 70) }}{{ r.reasoning.length > 70 ? '… ▼' : '' }}
+                                    </span>
+                                </span>
+                                <span v-else style="color:#adb5bd;">—</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+        `,
+
+        data() {
+            return {
+                view: 'list',
+                analyses:    [],
+                loadingList: false,
+
+                patentIdInput:        '',
+                creating:             false,
+                currentAnalysisId:    null,
+                extractionStatus:     null,
+                extractionError:      null,
+                extractionPollTimer:  null,
+
+                analysis:    null,
+                batches:     [],
+                results:     [],
+                stats:       { total: 0, analyzed: 0, unanalyzed: 0, relevant: 0, not_relevant: 0, uncertain: 0 },
+
+                editablePlan:     [],
+                showSourcePatent: false,
+                showSearchPlan:   false,
+                showBatchHistory: true,
+                showBatchPanel:   true,
+                showResults:      true,
+                savingPlan:       false,
+
+                batchSearches:   [{ judul: null, nama_inventor: null, nama_pemegang: null }],
+                pagination:      100,
+                runningBatch:    null,
+                batchPollTimer:  null,
+
+                showDeleteModal:  false,
+                deleteTargetId:   null,
+                deleteTargetTitle: '',
+                deletingAnalysis: false,
+
+                selectedResultIds:    [],
+                categorizingJob:      null,
+                categorizingPollTimer:null,
+                categorizeProgress:   { done: 0, total: 0, status: 'idle' },
+                expandedResultId:     null,
+            };
+        },
+
+        computed: {
+            hasValidSearches() {
+                return this.batchSearches.some(r => r.judul || r.nama_inventor || r.nama_pemegang);
+            },
+            titleOptions() {
+                return (this.analysis?.search_plan || [])
+                    .filter(i => i.field === 'title').map(i => i.term);
+            },
+            inventorOptions() {
+                return (this.analysis?.search_plan || [])
+                    .filter(i => i.field === 'inventor').map(i => i.term);
+            },
+            assigneeOptions() {
+                return (this.analysis?.search_plan || [])
+                    .filter(i => i.field === 'assignee').map(i => i.term);
+            },
+            uncategorizedCount() {
+                return this.results.filter(r => !r.category).length;
+            },
+            selectedUncategorizedCount() {
+                const idSet = new Set(this.selectedResultIds);
+                return this.results.filter(r => idSet.has(r.id) && !r.category).length;
+            },
+            allSelected() {
+                return this.results.length > 0 && this.selectedResultIds.length === this.results.length;
+            },
+        },
+
+        methods: {
+            // ── List ──────────────────────────────────────────────────────
+            async loadAnalyses() {
+                this.loadingList = true;
+                try {
+                    const res = await fetch('/api/v1/analysis');
+                    const data = await res.json();
+                    this.analyses = data.analyses || [];
+                } catch (err) {
+                    console.error('loadAnalyses error:', err);
+                } finally {
+                    this.loadingList = false;
+                }
+            },
+
+            // ── Create ────────────────────────────────────────────────────
+            startCreate() {
+                this.patentIdInput   = '';
+                this.extractionError = null;
+                this.creating        = false;
+                this.view = 'create';
+            },
+
+            async submitCreate() {
+                const pid = this.patentIdInput.trim();
+                if (!pid) return;
+                this.creating        = true;
+                this.extractionError = null;
+                try {
+                    const res = await fetch('/api/v1/analysis', {
+                        method:  'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body:    JSON.stringify({ google_patent_id: pid }),
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.detail || 'Failed to create analysis');
+                    this.currentAnalysisId = data.analysis_id;
+                    this.startExtractionPoll();
+                } catch (err) {
+                    this.extractionError = err.message;
+                    this.creating = false;
+                }
+            },
+
+            startExtractionPoll() {
+                if (this.extractionPollTimer) clearInterval(this.extractionPollTimer);
+                this.extractionPollTimer = setInterval(async () => {
+                    try {
+                        const res = await fetch(`/api/v1/analysis/${this.currentAnalysisId}`);
+                        const data = await res.json();
+                        if (data.status === 'ready' || data.status === 'error') {
+                            clearInterval(this.extractionPollTimer);
+                            this.extractionPollTimer = null;
+                            this.creating = false;
+                            if (data.status === 'error') {
+                                this.extractionError = data.error_message || 'Extraction failed';
+                            } else {
+                                await this.openDashboard(this.currentAnalysisId);
+                            }
+                        }
+                    } catch (err) {
+                        console.error('extraction poll error:', err);
+                    }
+                }, 5000);
+            },
+
+            // ── Dashboard ─────────────────────────────────────────────────
+            async openDashboard(analysisId) {
+                this.currentAnalysisId = analysisId;
+                await this.refreshDashboard();
+                this.view = 'dashboard';
+                // If still extracting, keep polling
+                if (this.analysis && this.analysis.status === 'extracting') {
+                    this.startExtractionPoll();
+                }
+            },
+
+            async refreshDashboard() {
+                const aid = this.currentAnalysisId;
+                try {
+                    const [aRes, bRes, rRes, sRes] = await Promise.all([
+                        fetch(`/api/v1/analysis/${aid}`),
+                        fetch(`/api/v1/analysis/${aid}/batches`),
+                        fetch(`/api/v1/analysis/${aid}/results`),
+                        fetch(`/api/v1/analysis/${aid}/stats`),
+                    ]);
+                    this.analysis = await aRes.json();
+                    const bData  = await bRes.json();
+                    const rData  = await rRes.json();
+                    this.stats   = await sRes.json();
+                    this.batches = bData.batches  || [];
+                    this.results = rData.results  || [];
+
+                    // Rebuild editablePlan from analysis.search_plan
+                    this.editablePlan = (this.analysis.search_plan || []).map(item => ({ ...item }));
+
+                    // Reset batch search rows to one empty row when opening dashboard
+                    this.batchSearches = [{ judul: null, nama_inventor: null, nama_pemegang: null }];
+                } catch (err) {
+                    console.error('refreshDashboard error:', err);
+                }
+            },
+
+            backToList() {
+                if (this.extractionPollTimer)   { clearInterval(this.extractionPollTimer);   this.extractionPollTimer = null; }
+                if (this.batchPollTimer)         { clearInterval(this.batchPollTimer);         this.batchPollTimer = null; }
+                if (this.categorizingPollTimer)  { clearInterval(this.categorizingPollTimer);  this.categorizingPollTimer = null; }
+                this.runningBatch    = null;
+                this.categorizingJob = null;
+                this.selectedResultIds = [];
+                this.analysis = null;
+                this.view = 'list';
+                this.loadAnalyses();
+            },
+
+            // ── Search Plan edits ─────────────────────────────────────────
+            addPlanItem() {
+                this.editablePlan.push({ term: '', field: 'title' });
+            },
+            removePlanItem(idx) {
+                this.editablePlan.splice(idx, 1);
+            },
+            async savePlan() {
+                this.savingPlan = true;
+                try {
+                    const res = await fetch(`/api/v1/analysis/${this.currentAnalysisId}/search-plan`, {
+                        method:  'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body:    JSON.stringify({ search_plan: this.editablePlan }),
+                    });
+                    if (!res.ok) throw new Error('Failed to save plan');
+                    this.analysis.search_plan = this.editablePlan.map(item => ({ ...item }));
+                    alert('Search plan saved.');
+                } catch (err) {
+                    alert('Error: ' + err.message);
+                } finally {
+                    this.savingPlan = false;
+                }
+            },
+
+            // ── Batch run ─────────────────────────────────────────────────
+            addBatchSearch() {
+                this.batchSearches.push({ judul: null, nama_inventor: null, nama_pemegang: null });
+            },
+            removeBatchSearch(idx) {
+                if (this.batchSearches.length > 1) this.batchSearches.splice(idx, 1);
+            },
+            async runBatch() {
+                const searches = this.batchSearches
+                    .map(r => ({ judul: r.judul || null, nama_inventor: r.nama_inventor || null, nama_pemegang: r.nama_pemegang || null }))
+                    .filter(s => s.judul || s.nama_inventor || s.nama_pemegang);
+                if (searches.length === 0) return;
+
+                try {
+                    const res = await fetch(`/api/v1/analysis/${this.currentAnalysisId}/batches`, {
+                        method:  'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body:    JSON.stringify({ searches, pagination: this.pagination }),
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.detail || 'Failed to start batch');
+                    this.runningBatch = data.batch_id;
+                    this.startBatchPoll(data.batch_id);
+                    await this.refreshBatches();
+                } catch (err) {
+                    alert('Error starting batch: ' + err.message);
+                }
+            },
+
+            startBatchPoll(batchId) {
+                if (this.batchPollTimer) clearInterval(this.batchPollTimer);
+                this.batchPollTimer = setInterval(async () => {
+                    try {
+                        const res  = await fetch(`/api/v1/analysis/${this.currentAnalysisId}/batches/${batchId}`);
+                        const data = await res.json();
+                        if (data.status === 'completed' || data.status === 'failed') {
+                            clearInterval(this.batchPollTimer);
+                            this.batchPollTimer = null;
+                            this.runningBatch   = null;
+                            await this.refreshBatches();
+                            await this.refreshResults();
+                            await this.refreshStats();
+                        }
+                    } catch (err) {
+                        console.error('batch poll error:', err);
+                    }
+                }, 8000);
+            },
+
+            async refreshBatches() {
+                try {
+                    const res  = await fetch(`/api/v1/analysis/${this.currentAnalysisId}/batches`);
+                    const data = await res.json();
+                    this.batches = data.batches || [];
+                } catch (err) { console.error('refreshBatches error:', err); }
+            },
+
+            async refreshResults() {
+                try {
+                    const res  = await fetch(`/api/v1/analysis/${this.currentAnalysisId}/results`);
+                    const data = await res.json();
+                    this.results = data.results || [];
+                } catch (err) { console.error('refreshResults error:', err); }
+            },
+
+            async refreshStats() {
+                try {
+                    const res  = await fetch(`/api/v1/analysis/${this.currentAnalysisId}/stats`);
+                    this.stats = await res.json();
+                } catch (err) { console.error('refreshStats error:', err); }
+            },
+
+            // ── Delete ────────────────────────────────────────────────────
+            promptDelete(id, title) {
+                this.deleteTargetId    = id;
+                this.deleteTargetTitle = title;
+                this.showDeleteModal   = true;
+            },
+            cancelDelete() {
+                this.showDeleteModal   = false;
+                this.deleteTargetId    = null;
+                this.deleteTargetTitle = '';
+            },
+            async confirmDelete() {
+                this.deletingAnalysis = true;
+                try {
+                    const res = await fetch(`/api/v1/analysis/${this.deleteTargetId}`, { method: 'DELETE' });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.detail || 'Delete failed');
+                    this.showDeleteModal   = false;
+                    this.deleteTargetId    = null;
+                    this.deleteTargetTitle = '';
+                    // If we were on the dashboard, go back to list
+                    if (this.view === 'dashboard') {
+                        if (this.extractionPollTimer) { clearInterval(this.extractionPollTimer); this.extractionPollTimer = null; }
+                        if (this.batchPollTimer)      { clearInterval(this.batchPollTimer);      this.batchPollTimer = null; }
+                        this.analysis = null;
+                        this.view = 'list';
+                    }
+                    await this.loadAnalyses();
+                } catch (err) {
+                    alert('Error: ' + err.message);
+                } finally {
+                    this.deletingAnalysis = false;
+                }
+            },
+
+            // ── Categorisation ────────────────────────────────────────────
+            toggleSelectAll() {
+                if (this.allSelected) {
+                    this.selectedResultIds = [];
+                } else {
+                    this.selectedResultIds = this.results.map(r => r.id);
+                }
+            },
+
+            async categorizeAll() {
+                try {
+                    const res = await fetch(`/api/v1/analysis/${this.currentAnalysisId}/categorize`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({}),
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.detail || 'Failed to start categorisation');
+                    this.categorizingJob     = data.job_id;
+                    this.categorizeProgress  = { done: 0, total: data.total, status: 'running' };
+                    this.startCategorizePoll(data.job_id);
+                } catch (err) {
+                    alert('Error: ' + err.message);
+                }
+            },
+
+            async categorizeSelected() {
+                const uncatSelected = this.results
+                    .filter(r => this.selectedResultIds.includes(r.id) && !r.category)
+                    .map(r => r.id);
+                if (uncatSelected.length === 0) return;
+                try {
+                    const res = await fetch(`/api/v1/analysis/${this.currentAnalysisId}/categorize`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ result_ids: uncatSelected }),
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.detail || 'Failed to start categorisation');
+                    this.categorizingJob    = data.job_id;
+                    this.categorizeProgress = { done: 0, total: data.total, status: 'running' };
+                    this.startCategorizePoll(data.job_id);
+                } catch (err) {
+                    alert('Error: ' + err.message);
+                }
+            },
+
+            startCategorizePoll(jobId) {
+                if (this.categorizingPollTimer) clearInterval(this.categorizingPollTimer);
+                this.categorizingPollTimer = setInterval(async () => {
+                    try {
+                        const res  = await fetch(`/api/v1/analysis/${this.currentAnalysisId}/categorize/status?job_id=${jobId}`);
+                        const data = await res.json();
+                        this.categorizeProgress = { done: data.done, total: data.total, status: data.status };
+                        if (data.status === 'completed' || data.status === 'failed') {
+                            clearInterval(this.categorizingPollTimer);
+                            this.categorizingPollTimer = null;
+                            this.categorizingJob = null;
+                            await this.refreshResults();
+                            await this.refreshStats();
+                            // Reload analysis to pick up sheet_url
+                            const aRes = await fetch(`/api/v1/analysis/${this.currentAnalysisId}`);
+                            this.analysis = await aRes.json();
+                        }
+                    } catch (err) {
+                        console.error('categorize poll error:', err);
+                    }
+                }, 3000);
+            },
+
+            async updateCategory(resultId, category) {
+                try {
+                    const res = await fetch(
+                        `/api/v1/analysis/${this.currentAnalysisId}/results/${resultId}/category`,
+                        {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ category }),
+                        }
+                    );
+                    if (!res.ok) throw new Error('Failed to update category');
+                    const r = this.results.find(r => r.id === resultId);
+                    if (r) r.category = category;
+                    await this.refreshStats();
+                } catch (err) {
+                    alert('Error updating category: ' + err.message);
+                }
+            },
+
+            toggleResultExpand(id) {
+                this.expandedResultId = this.expandedResultId === id ? null : id;
+            },
+
+            openGoogleSheet() {
+                if (this.analysis && this.analysis.sheet_url) {
+                    window.open(this.analysis.sheet_url, '_blank');
+                }
+            },
+
+            // ── Utilities ─────────────────────────────────────────────────
+            formatDate(iso) {
+                if (!iso) return '—';
+                try {
+                    return new Date(iso).toLocaleString('en-US', {
+                        month: 'short', day: 'numeric', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit'
+                    });
+                } catch (_) { return iso; }
+            },
+        },
+
+        mounted() {
+            this.loadAnalyses();
+        }
+    });
+
+    const vueAppMounted = patentAnalysisAppInstance.mount('#patentAnalysisApp');
+
+    // Expose so TabManager can call loadAnalyses() on tab switch
+    window.patentAnalysisApp = vueAppMounted;
     </script>
 </body>
 </html>

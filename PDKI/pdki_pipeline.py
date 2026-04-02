@@ -57,9 +57,9 @@ from PDKI.PDKI_advanced import (
     set_category_paten,
     fill_advanced_search,
     click_terapkan,
-    set_pagination_100,
     extract_links,
 )
+from PDKI.PDKI_extrac_undetected import set_pagination_100
 from PDKI.PDKI_detail_extractor import (
     setup_driver as setup_detail_driver,
     extract_detail,
@@ -514,6 +514,7 @@ def run_pipeline(patent_id: str, api_key: str) -> str:
             raise RuntimeError("PDKI page failed to load")
         if not set_category_paten(pdki_driver):
             raise RuntimeError("Could not set category to Paten")
+
         set_pagination_100(pdki_driver)
 
         r1_results = run_pdki_batches(batches_r1, pdki_driver, round_label="R1")

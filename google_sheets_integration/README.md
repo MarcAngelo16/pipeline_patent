@@ -73,6 +73,13 @@ Pipeline works normally, just skips Google Sheets export:
 ```bash
 python main_patent_pipeline.py golimumab  # JSON only, no --export-sheets
 ```
+### Reset Credentials steps
+1. Go to https://console.cloud.google.com/apis/credentials on your PC
+2. Find your OAuth 2.0 Client ID → click the download button (⬇) → save as oauth_client_secret.json
+3. Put oauth_client_secret.json + generate_oauth_token.py in the same folder on your PC
+4. Run python3 generate_oauth_token.py → browser opens → login → oauth_token.json gets generated
+5. Copy it to the server:
+docker cp oauth_token.json patent-pipeline:/app/patent_pipeline/google_sheets_integration/
 
 ## Security Notes
 
