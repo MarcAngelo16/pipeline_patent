@@ -12,7 +12,7 @@ from datetime import datetime
 from typing import Dict, List, Optional
 from pathlib import Path
 
-from fastapi import FastAPI, BackgroundTasks, HTTPException
+from fastapi import FastAPI, BackgroundTasks, HTTPException, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, HTMLResponse
@@ -47,6 +47,34 @@ jobs: Dict[str, Dict] = {}
 # Categorization job tracker
 categorization_jobs: Dict[str, Dict] = {}
 
+# In-memory live stage tracking for running batch jobs
+batch_stages: Dict[str, Dict] = {}  # batch_id -> {"stage": str, "logs": [str]}
+
+# ── Global Chrome queue ───────────────────────────────────────────────────────
+# Only one Chrome driver runs at a time (shared profile limitation).
+# All batch jobs AND manual URL adds must acquire this lock before opening Chrome.
+chrome_lock = asyncio.Semaphore(1)
+chrome_queue: List[Dict] = []  # [{"id": ..., "type": "batch"|"url_add", "label": ...}]
+
+def _chrome_queue_position(job_id: str) -> int:
+    """1-based position of job_id in the queue, 0 if not found."""
+    for i, entry in enumerate(chrome_queue, 1):
+        if entry["id"] == job_id:
+            return i
+    return 0
+
+def _refresh_queue_stages():
+    """Update stage messages for all jobs waiting in the Chrome queue."""
+    for i, entry in enumerate(chrome_queue, 1):
+        jid = entry["id"]
+        if jid in batch_stages:
+            batch_stages[jid]["stage"] = f"Queued — #{i} waiting for Chrome…"
+        elif jid in url_add_jobs:
+            url_add_jobs[jid]["stage"] = f"Queued — #{i} waiting for Chrome…"
+
+# ── Manual URL-add job tracker ────────────────────────────────────────────────
+url_add_jobs: Dict[str, Dict] = {}  # job_id -> {status, stage, error}
+
 # Initialize search history database
 history_db = SearchHistoryDB()
 
@@ -67,6 +95,53 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Serve noVNC static files (VNC browser client)
+_novnc_dir = Path(__file__).parent.parent / "frontend" / "novnc"
+if _novnc_dir.exists():
+    app.mount("/novnc", StaticFiles(directory=str(_novnc_dir)), name="novnc")
+
+# ─── VNC WebSocket proxy: browser → FastAPI :8000/api/vnc → VNC TCP :5900 ────
+@app.websocket("/api/vnc")
+async def vnc_ws_proxy(websocket: WebSocket):
+    """
+    Bridge the browser's noVNC WebSocket directly to the VNC TCP socket.
+    No separate websockify process needed — FastAPI handles the translation.
+    """
+    await websocket.accept()
+    try:
+        reader, writer = await asyncio.open_connection("127.0.0.1", 5900)
+    except Exception as e:
+        await websocket.close(code=1011, reason=f"VNC unreachable: {e}")
+        return
+
+    async def browser_to_vnc():
+        try:
+            while True:
+                data = await websocket.receive_bytes()
+                writer.write(data)
+                await writer.drain()
+        except Exception:
+            writer.close()
+
+    async def vnc_to_browser():
+        try:
+            while True:
+                data = await reader.read(32768)
+                if not data:
+                    break
+                await websocket.send_bytes(data)
+        except Exception:
+            pass
+        finally:
+            await websocket.close()
+
+    await asyncio.gather(browser_to_vnc(), vnc_to_browser(),
+                         return_exceptions=True)
+    try:
+        writer.close()
+    except Exception:
+        pass
 
 # Startup event: cleanup old database entries
 @app.on_event("startup")
@@ -718,188 +793,234 @@ async def run_batch_job(
     import time as _time
 
     loop = asyncio.get_event_loop()
-    analysis_db.update_batch_status(batch_id, "running")
 
-    pdki_batches = _convert_to_pdki_batches(searches)
-    if not pdki_batches:
-        analysis_db.update_batch_status(batch_id, "failed", error="No search terms provided")
-        return
+    # Register in Chrome queue
+    _queue_entry = {"id": batch_id, "type": "batch", "label": f"batch:{batch_id[:8]}"}
+    chrome_queue.append(_queue_entry)
+    batch_stages[batch_id] = {"stage": "Queued — waiting for Chrome…", "logs": []}
+    analysis_db.update_batch_status(batch_id, "queued")
+    _refresh_queue_stages()
 
-    def _sync_run_searches():
-        import time
-        from PDKI.PDKI_advanced import (
-            setup_driver as setup_pdki_driver,
-            load_search_page,
-            set_category_paten,
-            clear_all_fields,
-            fill_main_search,
-            submit_main_search,
-            fill_advanced_search,
-            click_terapkan,
-            set_pagination,
-            extract_links,
-            detect_captcha,
-        )
+    def _log_stage(msg: str):
+        batch_stages[batch_id]["stage"] = msg
+        batch_stages[batch_id]["logs"].append(msg)
+        if len(batch_stages[batch_id]["logs"]) > 50:
+            batch_stages[batch_id]["logs"] = batch_stages[batch_id]["logs"][-50:]
+        print(f"[batch_job] {msg}")
 
-        driver = setup_pdki_driver()
-        all_raw: List[Dict] = []
-        try:
-            if not load_search_page(driver):
-                raise RuntimeError("PDKI page failed to load")
-            if not set_category_paten(driver):
-                raise RuntimeError("Could not set category to Paten")
+    async with chrome_lock:
+        chrome_queue.remove(_queue_entry)
+        _refresh_queue_stages()
+        analysis_db.update_batch_status(batch_id, "running")
+        batch_stages[batch_id] = {"stage": "Initializing search…", "logs": []}
 
-            for i, batch in enumerate(pdki_batches, 1):
-                tag        = batch["_tag"]
-                main_title = batch.get("main_title", "")
-                pg         = batch.get("pagination", 100)
-                adv_fields = {
-                    k: batch.get(k)
-                    for k in ("judul", "nama_inventor", "nama_konsultan", "abstrak", "nama_pemegang")
-                }
+        pdki_batches = _convert_to_pdki_batches(searches)
+        if not pdki_batches:
+            analysis_db.update_batch_status(batch_id, "failed", error="No search terms provided")
+            batch_stages.pop(batch_id, None)
+            return
 
-                print(f"  [batch_job] {i}/{len(pdki_batches)}: {tag}")
+        def _sync_run_searches():
+            import time
+            from PDKI.PDKI_advanced import (
+                setup_driver as setup_pdki_driver,
+                load_search_page,
+                set_category_paten,
+                clear_all_fields,
+                fill_main_search,
+                submit_main_search,
+                fill_advanced_search,
+                click_terapkan,
+                set_pagination,
+                extract_links,
+                detect_captcha,
+            )
 
-                if i > 1:
-                    clear_all_fields(driver)
+            driver = setup_pdki_driver()
+            all_raw: List[Dict] = []
+            try:
+                _log_stage("Loading PDKI search page…")
+                if not load_search_page(driver):
+                    raise RuntimeError("PDKI page failed to load")
+                if not set_category_paten(driver):
+                    raise RuntimeError("Could not set category to Paten")
 
-                # Layer 1: main search
-                fill_main_search(driver, main_title)
-                if not submit_main_search(driver):
-                    print(f"    Main search failed — skipping {tag}")
-                    continue
+                for i, batch in enumerate(pdki_batches, 1):
+                    tag        = batch["_tag"]
+                    main_title = batch.get("main_title", "")
+                    pg         = batch.get("pagination", 100)
+                    adv_fields = {
+                        k: batch.get(k)
+                        for k in ("judul", "nama_inventor", "nama_konsultan", "abstrak", "nama_pemegang")
+                    }
 
-                # Captcha pause
-                while detect_captcha(driver):
-                    time.sleep(5)
+                    _log_stage(f"[{i}/{len(pdki_batches)}] Searching: {main_title}")
 
-                # Layer 2: advanced (optional)
-                if any(v for v in adv_fields.values()):
-                    fill_advanced_search(driver, **adv_fields)
-                    click_terapkan(driver)
+                    if i > 1:
+                        clear_all_fields(driver)
 
+                    fill_main_search(driver, main_title)
+                    if not submit_main_search(driver):
+                        _log_stage(f"[{i}/{len(pdki_batches)}] Main search failed — skipping")
+                        continue
+
+                    captcha_logged = False
                     while detect_captcha(driver):
+                        if not captcha_logged:
+                            _log_stage("Waiting for captcha resolution in VNC…")
+                            captcha_logged = True
                         time.sleep(5)
+                    if captcha_logged:
+                        _log_stage(f"[{i}/{len(pdki_batches)}] Captcha resolved — continuing")
 
-                set_pagination(driver, pg)
-                links = extract_links(driver)
-                print(f"    {len(links)} links")
+                    if any(v for v in adv_fields.values()):
+                        _log_stage(f"[{i}/{len(pdki_batches)}] Applying advanced filters…")
+                        fill_advanced_search(driver, **adv_fields)
+                        click_terapkan(driver)
 
-                for link in links:
-                    all_raw.append({"url": link["url"], "text": link.get("text", ""), "tag": tag})
+                        captcha_logged = False
+                        while detect_captcha(driver):
+                            if not captcha_logged:
+                                _log_stage("Waiting for captcha resolution in VNC…")
+                                captcha_logged = True
+                            time.sleep(5)
+                        if captcha_logged:
+                            _log_stage(f"[{i}/{len(pdki_batches)}] Captcha resolved — continuing")
 
-                if i < len(pdki_batches):
-                    time.sleep(3)
-        finally:
-            driver.quit()
+                    set_pagination(driver, pg)
+                    links = extract_links(driver)
+                    _log_stage(f"[{i}/{len(pdki_batches)}] Found {len(links)} links for: {main_title}")
 
-        return all_raw
+                    for link in links:
+                        all_raw.append({"url": link["url"], "text": link.get("text", ""), "tag": tag})
 
-    def _sync_fetch_details(unique_results: List[Dict]) -> List[Dict]:
-        import time
-        from selenium.webdriver.common.by import By
-        from PDKI.PDKI_detail_extractor import (
-            setup_driver as setup_detail_driver,
-            extract_detail,
-        )
-        from PDKI.PDKI_advanced import detect_captcha
+                    if i < len(pdki_batches):
+                        time.sleep(3)
+            finally:
+                driver.quit()
 
-        def wait_for_detail_ready(driver, url: str):
-            """
-            Navigate to url and poll until the page fully loads.
-            If captcha is detected, pause and wait for manual VNC fix.
-            No timeout — waits indefinitely.
-            """
-            driver.get(url)
-            time.sleep(2)
+            return all_raw
 
-            while True:
-                if detect_captcha(driver):
-                    print(f"   Captcha detected — waiting for manual resolution in VNC...")
-                    while detect_captcha(driver):
-                        time.sleep(5)
-                    print(f"   Captcha resolved — continuing")
-                    continue
+        def _sync_fetch_details(unique_results: List[Dict]) -> List[Dict]:
+            import time
+            from selenium.webdriver.common.by import By
+            from PDKI.PDKI_detail_extractor import (
+                setup_driver as setup_detail_driver,
+                extract_title,
+                extract_field_by_label,
+                extract_status,
+                extract_priority_numbers,
+                extract_inventors,
+                extract_assignees,
+                extract_abstract,
+            )
+            from PDKI.PDKI_advanced import detect_captcha
 
-                src = driver.page_source
-                if len(src) > 20000:
-                    try:
-                        driver.find_element(By.CSS_SELECTOR, "h1")
-                        return
-                    except Exception:
-                        pass
+            driver = setup_detail_driver()
+            try:
+                for i, item in enumerate(unique_results, 1):
+                    url = item["url"]
+                    _log_stage(f"[Detail {i}/{len(unique_results)}] Fetching detail page…")
+                    captcha_logged = False
 
-                time.sleep(3)
+                    def _wait(driver, url: str):
+                        nonlocal captcha_logged
+                        driver.get(url)
+                        time.sleep(2)
+                        while True:
+                            if detect_captcha(driver):
+                                if not captcha_logged:
+                                    _log_stage("Waiting for captcha resolution in VNC…")
+                                    captcha_logged = True
+                                time.sleep(5)
+                                continue
+                            if captcha_logged:
+                                _log_stage(f"[Detail {i}/{len(unique_results)}] Captcha resolved — continuing")
+                                captcha_logged = False
+                            src = driver.page_source
+                            if len(src) > 20000:
+                                try:
+                                    driver.find_element(By.CSS_SELECTOR, "h1")
+                                    return
+                                except Exception:
+                                    pass
+                            time.sleep(3)
 
-        driver = setup_detail_driver()
+                    _wait(driver, url)
+                    # Extract directly from the already-loaded page — no re-navigation
+                    detail = {
+                        'url':              url,
+                        'title':            extract_title(driver),
+                        'nomor_permohonan': extract_field_by_label(driver, 'No. Permohonan', 'No. Paten'),
+                        'tgl_penerimaan':   extract_field_by_label(driver, 'Tgl. Penerimaan', 'Tgl. Pemberian'),
+                        'status':           extract_status(driver),
+                        'priority_numbers': extract_priority_numbers(driver),
+                        'inventors':        extract_inventors(driver),
+                        'assignees':        extract_assignees(driver),
+                        'abstract':         extract_abstract(driver),
+                    }
+                    item["detail"] = detail
+                    _log_stage(f"[Detail {i}/{len(unique_results)}] Done — {url.split('/')[-1]}")
+                    if i < len(unique_results):
+                        time.sleep(2)
+            finally:
+                driver.quit()
+
+            return unique_results
+
         try:
-            for i, item in enumerate(unique_results, 1):
+            all_raw = await loop.run_in_executor(None, _sync_run_searches)
+
+            seen: Dict[str, Dict] = {}
+            for item in all_raw:
                 url = item["url"]
-                print(f"   [{i}/{len(unique_results)}] {url}")
-                wait_for_detail_ready(driver, url)
-                detail = extract_detail(driver, url, debug=False)
-                item["detail"] = detail
-                if i < len(unique_results):
-                    time.sleep(2)
-        finally:
-            driver.quit()
+                if url in seen:
+                    if item["tag"] not in seen[url]["tags"]:
+                        seen[url]["tags"].append(item["tag"])
+                else:
+                    seen[url] = {"url": url, "text": item["text"], "tags": [item["tag"]]}
 
-        return unique_results
+            unique_items = list(seen.values())
+            _log_stage(f"Search complete — {len(all_raw)} raw hits, {len(unique_items)} unique URLs")
 
-    try:
-        # Step 1: Run searches
-        all_raw = await loop.run_in_executor(None, _sync_run_searches)
+            gc.collect()
+            import time as _time3
+            _time3.sleep(3)
 
-        # Deduplicate by URL, merging tags
-        seen: Dict[str, Dict] = {}
-        for item in all_raw:
-            url = item["url"]
-            if url in seen:
-                if item["tag"] not in seen[url]["tags"]:
-                    seen[url]["tags"].append(item["tag"])
-            else:
-                seen[url] = {"url": url, "text": item["text"], "tags": [item["tag"]]}
+            _log_stage(f"Fetching detail pages for {len(unique_items)} patents…")
+            detail_inputs = [{"url": u["url"], "text": u["text"], "tags": u["tags"]} for u in unique_items]
+            detail_results = await loop.run_in_executor(None, _sync_fetch_details, detail_inputs)
 
-        unique_items = list(seen.values())
-        print(f"[batch_job] {len(all_raw)} raw hits → {len(unique_items)} unique URLs")
-
-        gc.collect()
-        import time as _time3
-        _time3.sleep(3)
-
-        # Step 2: Fetch details
-        detail_inputs = [{"url": u["url"], "text": u["text"], "tags": u["tags"]} for u in unique_items]
-        detail_results = await loop.run_in_executor(None, _sync_fetch_details, detail_inputs)
-
-        # Step 3: Save to DB — each URL may have multiple tags; upsert once per tag
-        results_to_upsert: List[Dict] = []
-        for item in detail_results:
-            tags = item.get("tags", [])
-            first_tag = tags[0] if tags else ""
-            results_to_upsert.append({
-                "url":    item["url"],
-                "text":   item.get("text", ""),
-                "tag":    first_tag,
-                "detail": item.get("detail"),
-            })
-            # Upsert extra tags
-            for extra_tag in tags[1:]:
+            results_to_upsert: List[Dict] = []
+            for item in detail_results:
+                tags = item.get("tags", [])
+                first_tag = tags[0] if tags else ""
                 results_to_upsert.append({
                     "url":    item["url"],
                     "text":   item.get("text", ""),
-                    "tag":    extra_tag,
-                    "detail": None,
+                    "tag":    first_tag,
+                    "detail": item.get("detail"),
                 })
+                for extra_tag in tags[1:]:
+                    results_to_upsert.append({
+                        "url":    item["url"],
+                        "text":   item.get("text", ""),
+                        "tag":    extra_tag,
+                        "detail": None,
+                    })
 
-        upsert_stats = analysis_db.upsert_results(analysis_id, results_to_upsert)
-        hit_count = upsert_stats["new"] + upsert_stats["duplicates"]
+            upsert_stats = analysis_db.upsert_results(analysis_id, results_to_upsert)
+            hit_count = upsert_stats["new"] + upsert_stats["duplicates"]
 
-        analysis_db.update_batch_status(batch_id, "completed", hit_count=hit_count)
-        print(f"[batch_job] {batch_id} completed — {hit_count} total hits, {upsert_stats['new']} new")
+            _log_stage(f"Completed — {hit_count} total hits ({upsert_stats['new']} new)")
+            analysis_db.update_batch_status(batch_id, "completed", hit_count=hit_count)
 
-    except Exception as exc:
-        print(f"[batch_job] {batch_id} failed: {exc}")
-        analysis_db.update_batch_status(batch_id, "failed", error=str(exc))
+        except Exception as exc:
+            _log_stage(f"Failed: {exc}")
+            analysis_db.update_batch_status(batch_id, "failed", error=str(exc))
+
+        finally:
+            batch_stages.pop(batch_id, None)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1191,7 +1312,147 @@ async def get_batch(analysis_id: str, batch_id: str):
     batch = analysis_db.get_batch(batch_id)
     if not batch or batch.get("analysis_id") != analysis_id:
         raise HTTPException(status_code=404, detail="Batch not found")
+    # Merge live stage info (running or queued)
+    live = batch_stages.get(batch_id)
+    if live:
+        batch = dict(batch)
+        batch["current_stage"] = live["stage"]
+        batch["log_lines"]     = live["logs"]
     return batch
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Patent Analysis — Manual URL Add
+# ─────────────────────────────────────────────────────────────────────────────
+
+class AddUrlRequest(BaseModel):
+    url: str
+
+async def _run_url_add_job(analysis_id: str, job_id: str, url: str):
+    """Background task: extract detail for a single URL and save to results."""
+    import time
+
+    _queue_entry = {"id": job_id, "type": "url_add", "label": url}
+    chrome_queue.append(_queue_entry)
+    url_add_jobs[job_id]["status"] = "queued"
+    url_add_jobs[job_id]["stage"]  = "Queued — waiting for Chrome…"
+    _refresh_queue_stages()
+
+    def _set_stage(msg: str):
+        url_add_jobs[job_id]["stage"] = msg
+        print(f"[url_add {job_id[:8]}] {msg}")
+
+    async with chrome_lock:
+        chrome_queue.remove(_queue_entry)
+        _refresh_queue_stages()
+        url_add_jobs[job_id]["status"] = "running"
+        _set_stage("Opening detail page…")
+
+        def _sync_extract():
+            from selenium.webdriver.common.by import By
+            from PDKI.PDKI_detail_extractor import (
+                setup_driver as setup_detail_driver,
+                extract_title,
+                extract_field_by_label,
+                extract_status,
+                extract_priority_numbers,
+                extract_inventors,
+                extract_assignees,
+                extract_abstract,
+            )
+            from PDKI.PDKI_advanced import detect_captcha
+
+            driver = setup_detail_driver()
+            try:
+                driver.get(url)
+                time.sleep(2)
+                captcha_logged = False
+                while True:
+                    if detect_captcha(driver):
+                        if not captcha_logged:
+                            _set_stage("Waiting for captcha resolution in VNC…")
+                            captcha_logged = True
+                        time.sleep(5)
+                        continue
+                    if captcha_logged:
+                        _set_stage("Captcha resolved — continuing")
+                        captcha_logged = False
+                    src = driver.page_source
+                    if len(src) > 20000:
+                        try:
+                            driver.find_element(By.CSS_SELECTOR, "h1")
+                            break
+                        except Exception:
+                            pass
+                    time.sleep(3)
+
+                # Extract directly from the already-loaded page — no re-navigation
+                _set_stage("Extracting patent data…")
+                return {
+                    'url':              url,
+                    'title':            extract_title(driver),
+                    'nomor_permohonan': extract_field_by_label(driver, 'No. Permohonan', 'No. Paten'),
+                    'tgl_penerimaan':   extract_field_by_label(driver, 'Tgl. Penerimaan', 'Tgl. Pemberian'),
+                    'status':           extract_status(driver),
+                    'priority_numbers': extract_priority_numbers(driver),
+                    'inventors':        extract_inventors(driver),
+                    'assignees':        extract_assignees(driver),
+                    'abstract':         extract_abstract(driver),
+                }
+            finally:
+                driver.quit()
+
+        try:
+            loop = asyncio.get_event_loop()
+            detail = await loop.run_in_executor(None, _sync_extract)
+            analysis_db.upsert_results(analysis_id, [{
+                "url":    url,
+                "text":   detail.get("title", "") if detail else "",
+                "tag":    "",
+                "detail": detail,
+            }])
+            url_add_jobs[job_id]["status"] = "completed"
+            _set_stage("Added successfully")
+        except Exception as exc:
+            url_add_jobs[job_id]["status"] = "failed"
+            url_add_jobs[job_id]["error"]  = str(exc)
+            _set_stage(f"Failed: {exc}")
+
+
+@app.post("/api/v1/analysis/{analysis_id}/results/add")
+async def add_result_url(
+    analysis_id: str,
+    request: AddUrlRequest,
+    background_tasks: BackgroundTasks,
+):
+    """Add a single PDKI patent URL to an analysis's results."""
+    analysis = analysis_db.get_analysis(analysis_id)
+    if not analysis:
+        raise HTTPException(status_code=404, detail="Analysis not found")
+
+    url = request.url.strip()
+    if not url:
+        raise HTTPException(status_code=400, detail="url is required")
+
+    # Deduplication check — find row number (1-based) if already present
+    existing = analysis_db.get_results(analysis_id)
+    for i, r in enumerate(existing, 1):
+        if r.get("url", "").strip() == url:
+            return {"duplicate": True, "row": i}
+
+    job_id = str(uuid.uuid4())
+    url_add_jobs[job_id] = {"status": "queued", "stage": "Queued…", "error": None}
+    background_tasks.add_task(_run_url_add_job, analysis_id, job_id, url)
+    return {"duplicate": False, "job_id": job_id}
+
+
+@app.get("/api/v1/analysis/{analysis_id}/results/add/{job_id}")
+async def get_url_add_job(analysis_id: str, job_id: str):
+    """Poll status of a manual URL-add job."""
+    job = url_add_jobs.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return job
 
 
 @app.get("/api/v1/analysis/{analysis_id}/results")

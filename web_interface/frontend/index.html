@@ -603,6 +603,41 @@
         .pa-status-completed  { background: #d4edda; color: #155724; }
         .pa-status-failed     { background: #f8d7da; color: #721c24; }
         .pa-status-pending    { background: #e2e3e5; color: #383d41; }
+        .pa-status-queued     { background: #fff3cd; color: #856404; }
+
+        /* Add URL modal */
+        .pa-modal-backdrop {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+            z-index: 10000; display: flex; align-items: center; justify-content: center;
+        }
+        .pa-modal {
+            background: #fff; border-radius: 12px; width: 520px; max-width: 95vw;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2); overflow: hidden;
+        }
+        .pa-modal-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px 20px; border-bottom: 1px solid #e9ecef; font-weight: 600;
+        }
+        .pa-modal-body   { padding: 20px; }
+        .pa-modal-footer { padding: 12px 20px; border-top: 1px solid #e9ecef;
+                           display: flex; justify-content: flex-end; gap: 10px; }
+        .pa-modal-close  { background: none; border: none; font-size: 1.2em;
+                           cursor: pointer; color: #6c757d; line-height: 1; }
+        .pa-modal-close:hover { color: #343a40; }
+        .pa-url-input {
+            width: 100%; box-sizing: border-box; padding: 9px 12px;
+            border: 1px solid #ced4da; border-radius: 6px; font-size: 0.9em;
+            font-family: monospace;
+        }
+        .pa-url-input:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,.15); }
+        .pa-url-status {
+            margin-top: 12px; padding: 9px 12px; border-radius: 6px;
+            font-size: 0.88em; display: flex; align-items: center; gap: 8px;
+        }
+        .pa-url-status.info     { background: #cce5ff; color: #004085; }
+        .pa-url-status.warning  { background: #fff3cd; color: #856404; }
+        .pa-url-status.success  { background: #d4edda; color: #155724; }
+        .pa-url-status.error    { background: #f8d7da; color: #721c24; }
 
         .pa-section {
             border: 1px solid #dee2e6;
@@ -690,9 +725,12 @@
             font-weight: 600;
             margin-left: 6px;
         }
+        .pa-field-main     { background: #fff3cd; color: #856404; font-weight:600; }
         .pa-field-title    { background: #cce5ff; color: #004085; }
         .pa-field-inventor { background: #d4edda; color: #155724; }
         .pa-field-assignee { background: #fce8ff; color: #5a005a; }
+        .pa-field-konsultan{ background: #ffe5d0; color: #7a3000; }
+        .pa-field-abstrak  { background: #e2f0e8; color: #1a4731; }
 
         .pa-pagination-row {
             display: flex;
@@ -830,16 +868,16 @@
             transition: background 0.2s;
         }
         .btn-secondary:hover { background: #5a6268; }
-        .pa-modal-overlay {
+        .pa-delete-overlay {
             position: fixed; inset: 0; background: rgba(0,0,0,0.45);
             display: flex; align-items: center; justify-content: center; z-index: 9999;
         }
-        .pa-modal {
+        .pa-delete-modal {
             background: #fff; border-radius: 12px; padding: 32px 28px;
             max-width: 420px; width: 90%; box-shadow: 0 8px 32px rgba(0,0,0,0.18);
         }
-        .pa-modal h3 { margin: 0 0 12px; font-size: 1.2em; color: #333; }
-        .pa-modal p  { margin: 0 0 24px; color: #555; font-size: 0.95em; line-height: 1.5; }
+        .pa-delete-modal h3 { margin: 0 0 12px; font-size: 1.2em; color: #333; }
+        .pa-delete-modal p  { margin: 0 0 24px; color: #555; font-size: 0.95em; line-height: 1.5; }
         .pa-modal-actions { display: flex; gap: 12px; justify-content: flex-end; }
         .btn-danger {
             padding: 8px 20px; background: #dc3545; color: #fff;
@@ -1079,6 +1117,31 @@
         </div>
         <!-- End Patent Analysis Page -->
     </div>
+
+    <!-- VNC Panel -->
+    <div id="vncPanel" style="display:none;position:fixed;bottom:70px;right:20px;z-index:10002;
+         width:900px;height:580px;background:#1e1e2e;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.5);
+         display:none;flex-direction:column;overflow:hidden;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;
+                    background:#2a2a3e;border-bottom:1px solid #444;flex-shrink:0;">
+            <span style="color:#cdd6f4;font-weight:600;font-size:0.9em;">VNC — Live Browser Display</span>
+            <div style="display:flex;gap:8px;align-items:center;">
+                <span style="color:#a6e3a1;font-size:0.78em;">Solve captchas directly here</span>
+                <button onclick="closeVncPanel()" style="background:#f38ba8;color:#fff;border:none;
+                        border-radius:6px;padding:3px 10px;cursor:pointer;font-size:0.85em;">✕ Close</button>
+            </div>
+        </div>
+        <iframe id="vncIframe" src="" style="flex:1;border:none;width:100%;background:#000;"></iframe>
+    </div>
+
+    <!-- VNC Floating Button -->
+    <button onclick="toggleVncPanel()" id="vncBtn"
+            style="position:fixed;bottom:20px;right:20px;z-index:10001;
+                   background:#667eea;color:#fff;border:none;border-radius:50px;
+                   padding:10px 18px;font-size:0.9em;font-weight:600;cursor:pointer;
+                   box-shadow:0 4px 14px rgba(102,126,234,0.5);display:flex;align-items:center;gap:7px;">
+        <span>🖥</span> VNC
+    </button>
 
     <!-- Confirmation Dialog -->
     <div class="confirmation-dialog" id="confirmationDialog">
@@ -1580,6 +1643,26 @@
             }
         }
 
+        // ── VNC Panel ────────────────────────────────────────────────────────
+        let _vncOpen = false;
+        function toggleVncPanel() {
+            const panel = document.getElementById('vncPanel');
+            const iframe = document.getElementById('vncIframe');
+            _vncOpen = !_vncOpen;
+            panel.style.display = _vncOpen ? 'flex' : 'none';
+            if (_vncOpen && !iframe.src.includes('vnc_lite.html')) {
+                // Use the same host:port as the web interface — FastAPI proxies to VNC
+                iframe.src = '/novnc/vnc_lite.html?host=' + location.hostname +
+                             '&port=' + location.port +
+                             '&path=api/vnc' +
+                             '&autoconnect=true&resize=scale&quality=6';
+            }
+        }
+        function closeVncPanel() {
+            _vncOpen = false;
+            document.getElementById('vncPanel').style.display = 'none';
+        }
+
         // Show clear all confirmation dialog
         function showClearAllConfirmation() {
             document.getElementById('confirmationDialog').classList.add('active');
@@ -1656,8 +1739,8 @@
         template: `
 <div>
     <!-- ═══ DELETE CONFIRMATION MODAL ═══════════════════════════════════ -->
-    <div v-if="showDeleteModal" class="pa-modal-overlay">
-        <div class="pa-modal">
+    <div v-if="showDeleteModal" class="pa-delete-overlay">
+        <div class="pa-delete-modal">
             <h3>Delete Analysis?</h3>
             <p>
                 This will permanently delete <strong>{{ deleteTargetTitle }}</strong>
@@ -1935,9 +2018,24 @@
                 </div>
                 <button @click="addBatchSearch" class="btn-secondary-sm" style="margin-bottom:20px;">+ Add Search Row</button>
 
-                <div v-if="runningBatch" class="pa-batch-progress">
-                    <div class="pa-spinner pa-spinner-small"></div>
-                    <span>{{ batchStatus || 'Batch running… polling for results.' }}</span>
+                <div v-if="runningBatch" class="pa-batch-progress" style="flex-direction:column;align-items:flex-start;gap:8px;">
+                    <div style="display:flex;align-items:center;gap:10px;width:100%;">
+                        <div class="pa-spinner pa-spinner-small"></div>
+                        <span style="font-weight:600;">{{ batchStatus || 'Batch running… polling for results.' }}</span>
+                        <button v-if="batchStatus && batchStatus.toLowerCase().includes('captcha')"
+                                onclick="toggleVncPanel()"
+                                style="margin-left:auto;background:#667eea;color:#fff;border:none;
+                                       border-radius:6px;padding:3px 10px;cursor:pointer;
+                                       font-size:0.82em;white-space:nowrap;">
+                            🖥 Open VNC
+                        </button>
+                    </div>
+                    <div v-if="batchLogs.length" style="width:100%;background:#1e1e2e;border-radius:6px;padding:8px 12px;font-family:monospace;font-size:0.78em;color:#a9b1d6;max-height:160px;overflow-y:auto;line-height:1.6;">
+                        <div v-for="(line, idx) in batchLogs" :key="idx"
+                             :style="idx === batchLogs.length-1 ? 'color:#9ece6a;font-weight:600;' : ''">
+                            {{ line }}
+                        </div>
+                    </div>
                 </div>
                 <div v-else>
                     <button
@@ -2006,13 +2104,21 @@
                             <td><span :class="'pa-status pa-status-' + b.status">{{ b.status }}</span></td>
                             <td style="font-size:0.85em;">
                                 <div v-for="(s,i) in (b.batch_config && b.batch_config.searches || [])" :key="i"
-                                     style="margin-bottom:2px;">
+                                     style="margin-bottom:4px;">
+                                    <span v-if="s.main_title" class="pa-field-badge pa-field-main" style="margin-right:3px;">{{ s.main_title }}</span>
                                     <span v-if="s.judul" class="pa-field-badge pa-field-title" style="margin-right:3px;">{{ s.judul }}</span>
                                     <span v-if="s.nama_inventor" class="pa-field-badge pa-field-inventor" style="margin-right:3px;">{{ s.nama_inventor }}</span>
+                                    <span v-if="s.nama_konsultan" class="pa-field-badge pa-field-konsultan" style="margin-right:3px;">{{ s.nama_konsultan }}</span>
+                                    <span v-if="s.abstrak" class="pa-field-badge pa-field-abstrak" style="margin-right:3px;">{{ s.abstrak }}</span>
                                     <span v-if="s.nama_pemegang" class="pa-field-badge pa-field-assignee">{{ s.nama_pemegang }}</span>
                                 </div>
                             </td>
-                            <td>{{ b.batch_config && b.batch_config.pagination }}</td>
+                            <td>
+                                <div v-for="(s,i) in (b.batch_config && b.batch_config.searches || [])" :key="i"
+                                     style="font-size:0.85em;margin-bottom:2px;">
+                                    {{ s.pagination || '—' }}
+                                </div>
+                            </td>
                             <td>{{ b.hit_count }}</td>
                             <td style="font-size:0.85em;">{{ formatDate(b.created_at) }}</td>
                             <td style="font-size:0.85em;">{{ b.completed_at ? formatDate(b.completed_at) : '—' }}</td>
@@ -2027,11 +2133,59 @@
             </div>
         </div>
 
+        <!-- ── Add URL Modal ── -->
+        <div v-if="showAddUrlModal" class="pa-modal-backdrop" @click.self="closeAddUrlModal">
+            <div class="pa-modal">
+                <div class="pa-modal-header">
+                    <span>Add Patent URL</span>
+                    <button class="pa-modal-close" @click="closeAddUrlModal">✕</button>
+                </div>
+                <div class="pa-modal-body">
+                    <label style="font-size:0.88em;font-weight:600;color:#495057;display:block;margin-bottom:6px;">
+                        PDKI Patent URL
+                    </label>
+                    <input
+                        v-model="addUrlInput"
+                        class="pa-url-input"
+                        placeholder="https://pdki-indonesia.dgip.go.id/detail/…"
+                        :disabled="addUrlRunning"
+                        @keyup.enter="submitAddUrl"
+                    />
+                    <div v-if="addUrlStatus" :class="'pa-url-status ' + addUrlStatus.type">
+                        <span v-if="addUrlRunning">⟳</span>
+                        <span>{{ addUrlStatus.message }}</span>
+                        <button v-if="addUrlStatus.message && addUrlStatus.message.toLowerCase().includes('captcha')"
+                                onclick="toggleVncPanel()"
+                                style="margin-left:auto;background:#667eea;color:#fff;border:none;
+                                       border-radius:6px;padding:3px 10px;cursor:pointer;
+                                       font-size:0.85em;white-space:nowrap;flex-shrink:0;">
+                            🖥 Open VNC
+                        </button>
+                    </div>
+                </div>
+                <div class="pa-modal-footer">
+                    <button class="btn-secondary-sm" @click="closeAddUrlModal">Cancel</button>
+                    <button class="btn-primary-sm"
+                            @click="submitAddUrl"
+                            :disabled="!addUrlInput.trim() || addUrlRunning">
+                        + Add
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- ── Results Table ── -->
         <div class="pa-section">
             <div class="pa-section-toggle" @click="showResults = !showResults">
                 <span>📊 Results ({{ results.length }})</span>
-                <span>{{ showResults ? '▲' : '▼' }}</span>
+                <span style="display:flex;align-items:center;gap:10px;">
+                    <button class="btn-secondary-sm"
+                            @click.stop="openAddUrlModal"
+                            style="font-size:0.8em;padding:3px 10px;">
+                        + Add URL
+                    </button>
+                    <span>{{ showResults ? '▲' : '▼' }}</span>
+                </span>
             </div>
             <div v-if="showResults" class="pa-section-body" style="padding:0;overflow-x:auto;">
 
@@ -2174,12 +2328,19 @@
 
                 batchSearches:   [{ main_title: null, judul: null, nama_inventor: null, nama_konsultan: null, abstrak: null, nama_pemegang: null, pagination: 100 }],
                 batchStatus:     '',
+                batchLogs:       [],
                 runningBatch:    null,
                 batchPollTimer:  null,
 
                 showDeleteModal:  false,
                 deleteTargetId:   null,
                 deleteTargetTitle: '',
+
+                showAddUrlModal: false,
+                addUrlInput:     '',
+                addUrlStatus:    null,   // {type, message}
+                addUrlRunning:   false,
+                addUrlPollTimer: null,
                 deletingAnalysis: false,
 
                 selectedResultIds:    [],
@@ -2325,6 +2486,7 @@
                 if (this.extractionPollTimer)   { clearInterval(this.extractionPollTimer);   this.extractionPollTimer = null; }
                 if (this.batchPollTimer)         { clearInterval(this.batchPollTimer);         this.batchPollTimer = null; }
                 if (this.categorizingPollTimer)  { clearInterval(this.categorizingPollTimer);  this.categorizingPollTimer = null; }
+                if (this.addUrlPollTimer)         { clearInterval(this.addUrlPollTimer);         this.addUrlPollTimer = null; }
                 this.runningBatch    = null;
                 this.categorizingJob = null;
                 this.selectedResultIds = [];
@@ -2389,6 +2551,7 @@
                     if (!res.ok) throw new Error(data.detail || 'Failed to start batch');
                     this.runningBatch = data.batch_id;
                     this.batchStatus  = 'Batch running…';
+                    this.batchLogs    = [];
                     this.startBatchPoll(data.batch_id);
                     await this.refreshBatches();
                 } catch (err) {
@@ -2403,9 +2566,11 @@
                         const res  = await fetch(`/api/v1/analysis/${this.currentAnalysisId}/batches/${batchId}`);
                         const data = await res.json();
 
-                        // Show captcha waiting status if present
                         if (data.current_stage) {
                             this.batchStatus = data.current_stage;
+                        }
+                        if (data.log_lines && data.log_lines.length) {
+                            this.batchLogs = data.log_lines;
                         }
 
                         if (data.status === 'completed' || data.status === 'failed') {
@@ -2413,6 +2578,7 @@
                             this.batchPollTimer = null;
                             this.runningBatch   = null;
                             this.batchStatus    = '';
+                            this.batchLogs      = [];
                             await this.refreshBatches();
                             await this.refreshResults();
                             await this.refreshStats();
@@ -2420,7 +2586,7 @@
                     } catch (err) {
                         console.error('batch poll error:', err);
                     }
-                }, 5000);
+                }, 3000);
             },
 
             async refreshBatches() {
@@ -2452,6 +2618,71 @@
                 this.deleteTargetTitle = title;
                 this.showDeleteModal   = true;
             },
+            // ── Add URL modal ──────────────────────────────────────────────
+            openAddUrlModal() {
+                this.addUrlInput   = '';
+                this.addUrlStatus  = null;
+                this.addUrlRunning = false;
+                this.showAddUrlModal = true;
+            },
+            closeAddUrlModal() {
+                if (this.addUrlPollTimer) { clearInterval(this.addUrlPollTimer); this.addUrlPollTimer = null; }
+                this.showAddUrlModal = false;
+            },
+            async submitAddUrl() {
+                const url = this.addUrlInput.trim();
+                if (!url || this.addUrlRunning) return;
+
+                this.addUrlRunning = true;
+                this.addUrlStatus  = { type: 'info', message: 'Checking…' };
+
+                try {
+                    const res  = await fetch(`/api/v1/analysis/${this.currentAnalysisId}/results/add`, {
+                        method:  'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body:    JSON.stringify({ url }),
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.detail || 'Request failed');
+
+                    if (data.duplicate) {
+                        this.addUrlStatus  = { type: 'warning', message: `Already in results at row #${data.row}` };
+                        this.addUrlRunning = false;
+                        return;
+                    }
+
+                    // Poll job until done
+                    this.addUrlStatus = { type: 'info', message: 'Queued — waiting for Chrome…' };
+                    this.addUrlPollTimer = setInterval(async () => {
+                        try {
+                            const jr   = await fetch(`/api/v1/analysis/${this.currentAnalysisId}/results/add/${data.job_id}`);
+                            const job  = await jr.json();
+
+                            if (job.stage) this.addUrlStatus = {
+                                type: job.status === 'failed' ? 'error'
+                                    : job.status === 'completed' ? 'success' : 'info',
+                                message: job.stage,
+                            };
+
+                            if (job.status === 'completed') {
+                                clearInterval(this.addUrlPollTimer); this.addUrlPollTimer = null;
+                                this.addUrlRunning = false;
+                                this.addUrlInput   = '';
+                                await this.refreshResults();
+                                await this.refreshStats();
+                            } else if (job.status === 'failed') {
+                                clearInterval(this.addUrlPollTimer); this.addUrlPollTimer = null;
+                                this.addUrlRunning = false;
+                            }
+                        } catch (e) { console.error('url-add poll error:', e); }
+                    }, 3000);
+
+                } catch (err) {
+                    this.addUrlStatus  = { type: 'error', message: err.message };
+                    this.addUrlRunning = false;
+                }
+            },
+
             cancelDelete() {
                 this.showDeleteModal   = false;
                 this.deleteTargetId    = null;
