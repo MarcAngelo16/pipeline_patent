@@ -23,6 +23,17 @@ PDKI_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def setup_driver():
     os.environ['DISPLAY'] = ':99'
+
+    # Remove Chrome singleton lock files so a new instance can start cleanly
+    profile_dir = "/root/chrome-profile"
+    for lock_file in ["SingletonLock", "SingletonSocket", "SingletonCookie"]:
+        lock_path = os.path.join(profile_dir, lock_file)
+        if os.path.exists(lock_path) or os.path.islink(lock_path):
+            try:
+                os.remove(lock_path)
+            except OSError:
+                pass
+
     options = uc.ChromeOptions()
     options.add_argument("--user-data-dir=/root/chrome-profile")
     options.add_argument("--no-sandbox")

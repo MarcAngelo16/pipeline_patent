@@ -783,6 +783,14 @@
             font-size: 0.9em;
             background: white;
         }
+        .pa-input-inline {
+            padding: 5px 8px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            font-size: 0.9em;
+            width: 100%;
+            box-sizing: border-box;
+        }
         .pa-dashboard-header {
             padding: 24px 40px 0;
             border-bottom: 1px solid #dee2e6;
@@ -1862,19 +1870,30 @@
             </div>
             <div v-if="showBatchPanel" class="pa-section-body">
                 <p style="color:#666;font-size:0.9em;margin-bottom:12px;">
-                    Each row is one PDKI search. Fill any combination of fields — PDKI filters by all filled fields simultaneously.
+                    Each row is one PDKI search. <strong>Main Search</strong> is required. Advanced fields are optional — PDKI will filter by all filled fields simultaneously.
                 </p>
-                <table class="pa-table" style="margin-bottom:12px;">
+                <div style="overflow-x:auto;">
+                <table class="pa-table" style="margin-bottom:12px;min-width:900px;">
                     <thead>
                         <tr>
-                            <th>Title</th>
-                            <th>Writer</th>
-                            <th>Assignee</th>
+                            <th>Main Search *</th>
+                            <th>Judul</th>
+                            <th>Inventor</th>
+                            <th>Konsultan</th>
+                            <th>Abstrak</th>
+                            <th>Pemegang</th>
+                            <th>Per Page</th>
                             <th></th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr v-for="(row, idx) in batchSearches" :key="idx">
+                            <td>
+                                <select v-model="row.main_title" class="pa-select-inline">
+                                    <option :value="null">(empty)</option>
+                                    <option v-for="opt in titleOptions" :key="opt" :value="opt">{{ opt }}</option>
+                                </select>
+                            </td>
                             <td>
                                 <select v-model="row.judul" class="pa-select-inline">
                                     <option :value="null">(empty)</option>
@@ -1888,9 +1907,22 @@
                                 </select>
                             </td>
                             <td>
+                                <input v-model="row.nama_konsultan" class="pa-input-inline" placeholder="(empty)">
+                            </td>
+                            <td>
+                                <input v-model="row.abstrak" class="pa-input-inline" placeholder="(empty)">
+                            </td>
+                            <td>
                                 <select v-model="row.nama_pemegang" class="pa-select-inline">
                                     <option :value="null">(empty)</option>
                                     <option v-for="opt in assigneeOptions" :key="opt" :value="opt">{{ opt }}</option>
+                                </select>
+                            </td>
+                            <td>
+                                <select v-model="row.pagination" class="pa-select-inline" style="width:70px;">
+                                    <option :value="10">10</option>
+                                    <option :value="50">50</option>
+                                    <option :value="100">100</option>
                                 </select>
                             </td>
                             <td>
@@ -1900,22 +1932,12 @@
                         </tr>
                     </tbody>
                 </table>
-                <button @click="addBatchSearch" class="btn-secondary-sm" style="margin-bottom:20px;">+ Add Search</button>
-
-                <p style="font-weight:600;margin-bottom:8px;">Results per page:</p>
-                <div class="pa-pagination-row" style="margin-bottom:16px;">
-                    <button
-                        v-for="n in [10, 50, 100]" :key="n"
-                        class="pa-pagination-btn"
-                        :class="{ active: pagination === n }"
-                        @click="pagination = n">
-                        {{ n }}
-                    </button>
                 </div>
+                <button @click="addBatchSearch" class="btn-secondary-sm" style="margin-bottom:20px;">+ Add Search Row</button>
 
                 <div v-if="runningBatch" class="pa-batch-progress">
                     <div class="pa-spinner pa-spinner-small"></div>
-                    Batch running… polling for completion.
+                    <span>{{ batchStatus || 'Batch running… polling for results.' }}</span>
                 </div>
                 <div v-else>
                     <button
@@ -1925,7 +1947,7 @@
                         ▶ Run Search Batch
                     </button>
                     <span v-if="!hasValidSearches" style="margin-left:12px;color:#6c757d;font-size:0.9em;">
-                        Fill at least one field in a search row.
+                        Fill Main Search in at least one row.
                     </span>
                 </div>
             </div>
@@ -2150,8 +2172,8 @@
                 showResults:      true,
                 savingPlan:       false,
 
-                batchSearches:   [{ judul: null, nama_inventor: null, nama_pemegang: null }],
-                pagination:      100,
+                batchSearches:   [{ main_title: null, judul: null, nama_inventor: null, nama_konsultan: null, abstrak: null, nama_pemegang: null, pagination: 100 }],
+                batchStatus:     '',
                 runningBatch:    null,
                 batchPollTimer:  null,
 
@@ -2170,7 +2192,7 @@
 
         computed: {
             hasValidSearches() {
-                return this.batchSearches.some(r => r.judul || r.nama_inventor || r.nama_pemegang);
+                return this.batchSearches.some(r => r.main_title);
             },
             titleOptions() {
                 return (this.analysis?.search_plan || [])
@@ -2293,7 +2315,7 @@
                     this.editablePlan = (this.analysis.search_plan || []).map(item => ({ ...item }));
 
                     // Reset batch search rows to one empty row when opening dashboard
-                    this.batchSearches = [{ judul: null, nama_inventor: null, nama_pemegang: null }];
+                    this.batchSearches = [{ main_title: null, judul: null, nama_inventor: null, nama_konsultan: null, abstrak: null, nama_pemegang: null, pagination: 100 }];
                 } catch (err) {
                     console.error('refreshDashboard error:', err);
                 }
@@ -2338,26 +2360,35 @@
 
             // ── Batch run ─────────────────────────────────────────────────
             addBatchSearch() {
-                this.batchSearches.push({ judul: null, nama_inventor: null, nama_pemegang: null });
+                this.batchSearches.push({ main_title: null, judul: null, nama_inventor: null, nama_konsultan: null, abstrak: null, nama_pemegang: null, pagination: 100 });
             },
             removeBatchSearch(idx) {
                 if (this.batchSearches.length > 1) this.batchSearches.splice(idx, 1);
             },
             async runBatch() {
                 const searches = this.batchSearches
-                    .map(r => ({ judul: r.judul || null, nama_inventor: r.nama_inventor || null, nama_pemegang: r.nama_pemegang || null }))
-                    .filter(s => s.judul || s.nama_inventor || s.nama_pemegang);
+                    .map(r => ({
+                        main_title:     r.main_title     || null,
+                        judul:          r.judul          || null,
+                        nama_inventor:  r.nama_inventor  || null,
+                        nama_konsultan: r.nama_konsultan || null,
+                        abstrak:        r.abstrak        || null,
+                        nama_pemegang:  r.nama_pemegang  || null,
+                        pagination:     r.pagination     || 100,
+                    }))
+                    .filter(s => s.main_title);
                 if (searches.length === 0) return;
 
                 try {
                     const res = await fetch(`/api/v1/analysis/${this.currentAnalysisId}/batches`, {
                         method:  'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body:    JSON.stringify({ searches, pagination: this.pagination }),
+                        body:    JSON.stringify({ searches }),
                     });
                     const data = await res.json();
                     if (!res.ok) throw new Error(data.detail || 'Failed to start batch');
                     this.runningBatch = data.batch_id;
+                    this.batchStatus  = 'Batch running…';
                     this.startBatchPoll(data.batch_id);
                     await this.refreshBatches();
                 } catch (err) {
@@ -2371,10 +2402,17 @@
                     try {
                         const res  = await fetch(`/api/v1/analysis/${this.currentAnalysisId}/batches/${batchId}`);
                         const data = await res.json();
+
+                        // Show captcha waiting status if present
+                        if (data.current_stage) {
+                            this.batchStatus = data.current_stage;
+                        }
+
                         if (data.status === 'completed' || data.status === 'failed') {
                             clearInterval(this.batchPollTimer);
                             this.batchPollTimer = null;
                             this.runningBatch   = null;
+                            this.batchStatus    = '';
                             await this.refreshBatches();
                             await this.refreshResults();
                             await this.refreshStats();
@@ -2382,7 +2420,7 @@
                     } catch (err) {
                         console.error('batch poll error:', err);
                     }
-                }, 8000);
+                }, 5000);
             },
 
             async refreshBatches() {

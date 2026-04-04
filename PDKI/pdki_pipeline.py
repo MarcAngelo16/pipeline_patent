@@ -53,13 +53,16 @@ from googlepatent_extract.google_patents_clean_extractor import (
 )
 from PDKI.PDKI_advanced import (
     setup_driver as setup_pdki_driver,
-    wait_for_page,
+    load_search_page,
     set_category_paten,
+    fill_main_search,
+    submit_main_search,
     fill_advanced_search,
     click_terapkan,
+    set_pagination,
     extract_links,
+    clear_all_fields,
 )
-from PDKI.PDKI_extrac_undetected import set_pagination_100
 from PDKI.PDKI_detail_extractor import (
     setup_driver as setup_detail_driver,
     extract_detail,
@@ -196,33 +199,53 @@ def ai_plan_searches(patent_data: dict, api_key: str) -> dict:
 
 def build_batches(plan: dict) -> list[dict]:
     """
-    Convert the AI search plan into a flat list of single-field PDKI batches.
-    Each batch has: judul, nama_inventor, nama_pemegang, _tag (internal label).
+    Convert the AI search plan into a flat list of PDKI search batches.
+
+    Each batch has all 6 search fields + pagination + _tag (internal label).
+    AI maps:
+      title_keywords → main_title + judul
+      assignees      → main_title + nama_pemegang
+      inventors      → main_title + nama_inventor
+
+    Fields nama_konsultan and abstrak are always None here —
+    the user fills them manually in the web UI before running.
     """
     batches = []
 
     for kw in plan.get("title_keywords", []):
         batches.append({
-            "judul": kw,
-            "nama_inventor": None,
-            "nama_pemegang": None,
-            "_tag": f"title:{kw}",
+            "main_title":     kw,
+            "judul":          kw,
+            "nama_inventor":  None,
+            "nama_konsultan": None,
+            "abstrak":        None,
+            "nama_pemegang":  None,
+            "pagination":     100,
+            "_tag":           f"title:{kw}",
         })
 
     for a in plan.get("assignees", []):
         batches.append({
-            "judul": None,
-            "nama_inventor": None,
-            "nama_pemegang": a["search_term"],
-            "_tag": f"assignee:{a['search_term']}",
+            "main_title":     a["search_term"],
+            "judul":          None,
+            "nama_inventor":  None,
+            "nama_konsultan": None,
+            "abstrak":        None,
+            "nama_pemegang":  a["search_term"],
+            "pagination":     100,
+            "_tag":           f"assignee:{a['search_term']}",
         })
 
     for inv in plan.get("inventors", []):
         batches.append({
-            "judul": None,
-            "nama_inventor": inv["search_term"],
-            "nama_pemegang": None,
-            "_tag": f"inventor:{inv['search_term']}",
+            "main_title":     inv["search_term"],
+            "judul":          None,
+            "nama_inventor":  inv["search_term"],
+            "nama_konsultan": None,
+            "abstrak":        None,
+            "nama_pemegang":  None,
+            "pagination":     100,
+            "_tag":           f"inventor:{inv['search_term']}",
         })
 
     return batches
@@ -236,31 +259,48 @@ def run_pdki_batches(batches: list[dict], driver, round_label: str = "R1") -> li
     """
     Execute a list of PDKI batches using an already-loaded driver.
     Returns a list of: {tag, batch, links[], hit_count}
-    Driver must already be on the PDKI search page with category set to Paten.
+
+    Each batch uses two-layer search:
+      Layer 1 — main_title → fill main search bar + click Pencarian Data
+      Layer 2 — advanced fields (if any) → fill advanced fields + click Terapkan
     """
     results = []
 
     for i, batch in enumerate(batches, 1):
-        tag = batch["_tag"]
-        search_fields = {k: v for k, v in batch.items() if not k.startswith("_")}
+        tag        = batch["_tag"]
+        main_title = batch.get("main_title", "")
+        pagination = batch.get("pagination", 100)
+        adv_fields = {
+            k: batch.get(k)
+            for k in ("judul", "nama_inventor", "nama_konsultan", "abstrak", "nama_pemegang")
+        }
 
         print(f"\n  [{round_label}] Batch {i}/{len(batches)}: {tag}")
 
-        fill_advanced_search(driver, **search_fields)
+        if i > 1:
+            clear_all_fields(driver)
 
-        label = tag.replace(":", "_").replace(" ", "-")
-        if not click_terapkan(driver, label=label, screenshot=False):
-            print(f"    Terapkan failed — skipping")
-            results.append({"tag": tag, "batch": search_fields, "links": [], "hit_count": 0})
+        # Layer 1: main search
+        fill_main_search(driver, main_title)
+        if not submit_main_search(driver):
+            print(f"    Main search submit failed — skipping")
+            results.append({"tag": tag, "batch": batch, "links": [], "hit_count": 0})
             continue
 
+        # Layer 2: advanced search (only if any field is set)
+        if any(v for v in adv_fields.values()):
+            fill_advanced_search(driver, **adv_fields)
+            if not click_terapkan(driver):
+                print(f"    Terapkan failed — using main search results only")
+
+        set_pagination(driver, pagination)
         links = extract_links(driver)
         print(f"    {len(links)} links found")
 
         results.append({
-            "tag": tag,
-            "batch": search_fields,
-            "links": links,
+            "tag":       tag,
+            "batch":     batch,
+            "links":     links,
             "hit_count": len(links),
         })
 
@@ -509,13 +549,10 @@ def run_pipeline(patent_id: str, api_key: str) -> str:
     all_batch_results = []
 
     try:
-        pdki_driver.get("https://pdki-indonesia.dgip.go.id/search")
-        if not wait_for_page(pdki_driver):
+        if not load_search_page(pdki_driver):
             raise RuntimeError("PDKI page failed to load")
         if not set_category_paten(pdki_driver):
             raise RuntimeError("Could not set category to Paten")
-
-        set_pagination_100(pdki_driver)
 
         r1_results = run_pdki_batches(batches_r1, pdki_driver, round_label="R1")
         all_batch_results.extend(r1_results)

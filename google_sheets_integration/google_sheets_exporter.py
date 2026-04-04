@@ -292,6 +292,100 @@ class GoogleSheetsExporter:
 
         return headers
 
+    def export_pdki_results(self, keyword: str, details: List[Dict[str, Any]],
+                            searches: List[Dict] = None) -> str:
+        """
+        Export PDKI pipeline results (Phase 1 + Phase 2) to a new Google Sheet.
+
+        Creates two worksheets:
+          - Summary: search parameters + stats
+          - Patents:  one row per extracted patent
+
+        Args:
+            keyword:  display keyword (used in sheet title)
+            details:  list of extract_detail() dicts
+            searches: original search parameter dicts (for summary)
+
+        Returns:
+            URL of the created Google Sheet
+        """
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        sheet_title = f"Patent_Pipeline_PDKI_{keyword}_{timestamp}"
+        spreadsheet = self.client.create(sheet_title)
+        spreadsheet.share('', perm_type='anyone', role='reader')
+
+        # ── Sheet 1: Summary ──────────────────────────────────────────────────
+        summary_ws = spreadsheet.sheet1
+        summary_ws.update_title("Summary")
+
+        summary_rows = [
+            ["PDKI Patent Pipeline Summary", ""],
+            ["", ""],
+            ["Keyword",        keyword],
+            ["Generated",      str(datetime.now().strftime("%Y-%m-%d %H:%M"))],
+            ["Total Searches", len(searches) if searches else "N/A"],
+            ["Total Links",    "N/A"],
+            ["Total Details",  len(details)],
+            ["", ""],
+        ]
+        if searches:
+            summary_rows.append(["Search Parameters", ""])
+            for i, s in enumerate(searches, 1):
+                summary_rows.append([f"Search {i}", s.get("main_title", "")])
+                for field in ("judul", "nama_inventor", "nama_konsultan", "abstrak", "nama_pemegang"):
+                    val = s.get(field)
+                    if val:
+                        summary_rows.append([f"  {field}", val])
+                summary_rows.append([f"  pagination", s.get("pagination", 100)])
+
+        summary_ws.update('A1', summary_rows)
+        summary_ws.format('A1:B1', {
+            'textFormat': {'bold': True, 'fontSize': 14},
+            'backgroundColor': {'red': 0.9, 'green': 0.9, 'blue': 1.0},
+        })
+
+        # ── Sheet 2: Patents ──────────────────────────────────────────────────
+        patents_ws = spreadsheet.add_worksheet(title="Patents", rows=len(details) + 2, cols=12)
+
+        headers = [
+            "Title", "Status", "No. Permohonan", "Tgl. Penerimaan",
+            "Inventors", "Assignees", "Priority Numbers", "Abstract", "URL",
+        ]
+        rows = [headers]
+        for d in details:
+            inventors = "; ".join(
+                f"{inv.get('name', '')} ({inv.get('country', '')})"
+                for inv in (d.get("inventors") or [])
+            )
+            assignees = "; ".join(
+                f"{a.get('name', '')} ({a.get('country', '')})"
+                for a in (d.get("assignees") or [])
+            )
+            priorities = "; ".join(
+                f"{p.get('number', '')} {p.get('date', '')} {p.get('country', '')}"
+                for p in (d.get("priority_numbers") or [])
+            )
+            rows.append([
+                d.get("title") or "",
+                d.get("status") or "",
+                d.get("nomor_permohonan") or "",
+                d.get("tgl_penerimaan") or "",
+                inventors,
+                assignees,
+                priorities,
+                d.get("abstract") or "",
+                d.get("url") or "",
+            ])
+
+        patents_ws.update('A1', rows)
+        patents_ws.format('A1:I1', {
+            'textFormat': {'bold': True},
+            'backgroundColor': {'red': 0.85, 'green': 0.9, 'blue': 1.0},
+        })
+
+        print(f"✅ PDKI Google Sheet created: {sheet_title}")
+        return spreadsheet.url
+
     def test_connection(self) -> bool:
         """Test Google Sheets API connection"""
         try:

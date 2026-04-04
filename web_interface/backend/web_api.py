@@ -527,8 +527,7 @@ class UpdateSearchPlanRequest(BaseModel):
     search_plan: List[Dict]
 
 class CreateBatchRequest(BaseModel):
-    searches: List[Dict]   # [{judul, nama_inventor, nama_pemegang}]
-    pagination: int = 100
+    searches: List[Dict]   # [{main_title, judul, nama_inventor, nama_konsultan, abstrak, nama_pemegang, pagination}]
 
 class UpdateCategoryRequest(BaseModel):
     category: str          # relevant | not_relevant | uncertain
@@ -543,28 +542,40 @@ class CategorizeRequest(BaseModel):
 
 def _convert_to_pdki_batches(searches: List[Dict]) -> List[Dict]:
     """
-    Convert [{judul, nama_inventor, nama_pemegang}] to PDKI batch dicts with _tag.
-    Each dict maps directly to fill_advanced_search kwargs.
+    Convert search dicts to PDKI batch dicts with _tag.
+    Each dict maps to run_search() search item format.
     """
     batches = []
     for s in searches:
+        main_title    = (s.get("main_title")    or "").strip() or None
         judul         = (s.get("judul")         or "").strip() or None
         nama_inventor = (s.get("nama_inventor") or "").strip() or None
+        nama_konsultan= (s.get("nama_konsultan")or "").strip() or None
+        abstrak       = (s.get("abstrak")       or "").strip() or None
         nama_pemegang = (s.get("nama_pemegang") or "").strip() or None
+        pagination    = s.get("pagination", 100)
+        if pagination not in (10, 50, 100):
+            pagination = 100
 
-        if not any([judul, nama_inventor, nama_pemegang]):
-            continue  # skip fully empty rows
+        if not main_title:
+            continue  # main_title is required
 
-        tag_parts = []
-        if judul:         tag_parts.append(f"title:{judul}")
-        if nama_inventor: tag_parts.append(f"inventor:{nama_inventor}")
-        if nama_pemegang: tag_parts.append(f"assignee:{nama_pemegang}")
+        tag_parts = [f"main:{main_title}"]
+        if judul:          tag_parts.append(f"title:{judul}")
+        if nama_inventor:  tag_parts.append(f"inventor:{nama_inventor}")
+        if nama_konsultan: tag_parts.append(f"konsultan:{nama_konsultan}")
+        if abstrak:        tag_parts.append(f"abstrak:{abstrak[:30]}")
+        if nama_pemegang:  tag_parts.append(f"assignee:{nama_pemegang}")
 
         batches.append({
-            "judul":         judul,
-            "nama_inventor": nama_inventor,
-            "nama_pemegang": nama_pemegang,
-            "_tag":          " + ".join(tag_parts),
+            "main_title":     main_title,
+            "judul":          judul,
+            "nama_inventor":  nama_inventor,
+            "nama_konsultan": nama_konsultan,
+            "abstrak":        abstrak,
+            "nama_pemegang":  nama_pemegang,
+            "pagination":     pagination,
+            "_tag":           " + ".join(tag_parts),
         })
     return batches
 
@@ -718,36 +729,59 @@ async def run_batch_job(
         import time
         from PDKI.PDKI_advanced import (
             setup_driver as setup_pdki_driver,
-            wait_for_page,
+            load_search_page,
             set_category_paten,
+            clear_all_fields,
+            fill_main_search,
+            submit_main_search,
             fill_advanced_search,
             click_terapkan,
+            set_pagination,
             extract_links,
+            detect_captcha,
         )
 
         driver = setup_pdki_driver()
-        all_raw: List[Dict] = []   # [{url, text, tag}]
+        all_raw: List[Dict] = []
         try:
-            driver.get("https://pdki-indonesia.dgip.go.id/search")
-            if not wait_for_page(driver):
+            if not load_search_page(driver):
                 raise RuntimeError("PDKI page failed to load")
             if not set_category_paten(driver):
                 raise RuntimeError("Could not set category to Paten")
 
-            _set_pagination(driver, pagination)
-
             for i, batch in enumerate(pdki_batches, 1):
-                tag          = batch["_tag"]
-                search_fields = {k: v for k, v in batch.items() if not k.startswith("_")}
+                tag        = batch["_tag"]
+                main_title = batch.get("main_title", "")
+                pg         = batch.get("pagination", 100)
+                adv_fields = {
+                    k: batch.get(k)
+                    for k in ("judul", "nama_inventor", "nama_konsultan", "abstrak", "nama_pemegang")
+                }
 
                 print(f"  [batch_job] {i}/{len(pdki_batches)}: {tag}")
-                fill_advanced_search(driver, **search_fields)
 
-                label = tag.replace(":", "_").replace(" ", "-")
-                if not click_terapkan(driver, label=label, screenshot=False):
-                    print(f"    Terapkan failed — skipping {tag}")
+                if i > 1:
+                    clear_all_fields(driver)
+
+                # Layer 1: main search
+                fill_main_search(driver, main_title)
+                if not submit_main_search(driver):
+                    print(f"    Main search failed — skipping {tag}")
                     continue
 
+                # Captcha pause
+                while detect_captcha(driver):
+                    time.sleep(5)
+
+                # Layer 2: advanced (optional)
+                if any(v for v in adv_fields.values()):
+                    fill_advanced_search(driver, **adv_fields)
+                    click_terapkan(driver)
+
+                    while detect_captcha(driver):
+                        time.sleep(5)
+
+                set_pagination(driver, pg)
                 links = extract_links(driver)
                 print(f"    {len(links)} links")
 
@@ -763,15 +797,47 @@ async def run_batch_job(
 
     def _sync_fetch_details(unique_results: List[Dict]) -> List[Dict]:
         import time
+        from selenium.webdriver.common.by import By
         from PDKI.PDKI_detail_extractor import (
             setup_driver as setup_detail_driver,
             extract_detail,
         )
+        from PDKI.PDKI_advanced import detect_captcha
+
+        def wait_for_detail_ready(driver, url: str):
+            """
+            Navigate to url and poll until the page fully loads.
+            If captcha is detected, pause and wait for manual VNC fix.
+            No timeout — waits indefinitely.
+            """
+            driver.get(url)
+            time.sleep(2)
+
+            while True:
+                if detect_captcha(driver):
+                    print(f"   Captcha detected — waiting for manual resolution in VNC...")
+                    while detect_captcha(driver):
+                        time.sleep(5)
+                    print(f"   Captcha resolved — continuing")
+                    continue
+
+                src = driver.page_source
+                if len(src) > 20000:
+                    try:
+                        driver.find_element(By.CSS_SELECTOR, "h1")
+                        return
+                    except Exception:
+                        pass
+
+                time.sleep(3)
 
         driver = setup_detail_driver()
         try:
             for i, item in enumerate(unique_results, 1):
-                detail = extract_detail(driver, item["url"], debug=False)
+                url = item["url"]
+                print(f"   [{i}/{len(unique_results)}] {url}")
+                wait_for_detail_ready(driver, url)
+                detail = extract_detail(driver, url, debug=False)
                 item["detail"] = detail
                 if i < len(unique_results):
                     time.sleep(2)
@@ -1090,10 +1156,7 @@ async def create_batch(
     if not request.searches:
         raise HTTPException(status_code=400, detail="searches must not be empty")
 
-    batch_config = {
-        "searches":   request.searches,
-        "pagination": request.pagination,
-    }
+    batch_config = {"searches": request.searches}
     batch_id = analysis_db.create_batch(analysis_id, batch_config)
 
     background_tasks.add_task(
@@ -1101,7 +1164,7 @@ async def create_batch(
         analysis_id,
         batch_id,
         request.searches,
-        request.pagination,
+        100,  # pagination is now per-search; this arg is kept for signature compat
     )
 
     return {
@@ -1241,6 +1304,312 @@ async def update_result_category(
         background_tasks.add_task(_sync_google_sheet, analysis_id)
 
     return {"success": True, "result_id": result_id, "category": request.category}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PDKI Pipeline Search — Models
+# ─────────────────────────────────────────────────────────────────────────────
+
+class PDKISearchItem(BaseModel):
+    main_title: str
+    pagination: int = 100           # 10, 50, or 100
+    judul: Optional[str] = None
+    nama_inventor: Optional[str] = None
+    nama_konsultan: Optional[str] = None
+    abstrak: Optional[str] = None
+    nama_pemegang: Optional[str] = None
+
+class PDKIRequest(BaseModel):
+    searches: List[PDKISearchItem]
+    export_sheets: bool = True
+
+# In-memory job storage for PDKI pipeline jobs
+pdki_jobs: Dict[str, Dict] = {}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PDKI Pipeline Search — Background task
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _run_pdki_blocking(job_id: str, searches: list, export_sheets: bool):
+    """
+    Blocking function that runs Phase 1 (search + extract links) and
+    Phase 2 (detail extraction) sequentially. Runs in a thread executor.
+    Captcha is handled by pausing — the frontend shows 'Waiting for captcha resolution...'
+    """
+    import time
+    import json as _json
+    from selenium.webdriver.common.by import By
+    from PDKI.PDKI_advanced import (
+        setup_driver, set_category_paten,
+        clear_all_fields, fill_main_search, submit_main_search,
+        fill_advanced_search, click_terapkan, set_pagination,
+        extract_links, detect_captcha, SEARCH_URL,
+    )
+    from PDKI.PDKI_detail_extractor import (
+        setup_driver as setup_detail_driver,
+        extract_detail,
+    )
+
+    def update(progress: int, stage: str):
+        pdki_jobs[job_id]["progress"] = min(progress, 99)
+        pdki_jobs[job_id]["current_stage"] = stage
+        print(f"[PDKI {job_id[:8]}] {progress}% — {stage}")
+
+    def wait_page_ready(driver, selector: str):
+        """Poll until selector is found and page is not captcha."""
+        while True:
+            if detect_captcha(driver):
+                update(pdki_jobs[job_id]["progress"], "Waiting for captcha resolution...")
+                time.sleep(5)
+                continue
+            try:
+                driver.find_element(By.CSS_SELECTOR, selector)
+                return
+            except Exception:
+                time.sleep(2)
+
+    search_driver = None
+    detail_driver = None
+
+    try:
+        # ── Setup ─────────────────────────────────────────────────────────────
+        update(2, "Starting Chrome...")
+        search_driver = setup_driver()
+
+        update(5, "Loading PDKI search page...")
+        search_driver.get(SEARCH_URL)
+        time.sleep(3)
+        wait_page_ready(search_driver, "input.input-advance")
+
+        update(8, "Setting category to Paten...")
+        set_category_paten(search_driver)
+
+        # ── Phase 1: search each item ─────────────────────────────────────────
+        all_links = []
+        seen_urls: set = set()
+        n_searches = len(searches)
+
+        for i, search in enumerate(searches):
+            base_pct = 10 + int((i / n_searches) * 35)
+            title = search.get("main_title", "")
+            update(base_pct, f"Phase 1: Searching {i+1}/{n_searches} — '{title}'")
+
+            if i > 0:
+                clear_all_fields(search_driver)
+
+            fill_main_search(search_driver, title)
+            submit_main_search(search_driver)
+            time.sleep(3)
+
+            # Captcha check after submit
+            while detect_captcha(search_driver):
+                update(base_pct, "Waiting for captcha resolution...")
+                time.sleep(5)
+
+            # Advanced fields (optional)
+            adv = {k: search.get(k) for k in
+                   ["judul", "nama_inventor", "nama_konsultan", "abstrak", "nama_pemegang"]}
+            if any(v for v in adv.values()):
+                update(base_pct, f"Phase 1: Applying advanced filters {i+1}/{n_searches}")
+                fill_advanced_search(search_driver, **adv)
+                click_terapkan(search_driver)
+
+                while detect_captcha(search_driver):
+                    update(base_pct, "Waiting for captcha resolution...")
+                    time.sleep(5)
+
+            set_pagination(search_driver, search.get("pagination", 100))
+            links = extract_links(search_driver)
+
+            for link in links:
+                if link["url"] not in seen_urls:
+                    seen_urls.add(link["url"])
+                    all_links.append(link)
+
+            update(base_pct + max(1, 35 // n_searches),
+                   f"Phase 1: {i+1}/{n_searches} done — {len(all_links)} links so far")
+
+        search_driver.quit()
+        search_driver = None
+
+        if not all_links:
+            pdki_jobs[job_id].update({
+                "status": "completed",
+                "progress": 100,
+                "current_stage": "Completed — no links found",
+                "completed_at": datetime.now().isoformat(),
+                "results": {"total_patents": 0, "total_links": 0, "source": "pdki"},
+            })
+            return
+
+        update(46, f"Phase 1 complete — {len(all_links)} unique links. Starting Phase 2...")
+
+        # ── Phase 2: detail extraction ────────────────────────────────────────
+        detail_driver = setup_detail_driver()
+        details = []
+        n_links = len(all_links)
+
+        for i, link in enumerate(all_links):
+            base_pct = 47 + int((i / n_links) * 45)
+            url = link["url"]
+            update(base_pct, f"Phase 2: Extracting detail {i+1}/{n_links}")
+
+            detail_driver.get(url)
+            time.sleep(2)
+
+            # Wait for real page content or resolve captcha
+            while True:
+                src = detail_driver.page_source
+                if len(src) > 20000:
+                    try:
+                        detail_driver.find_element(By.CSS_SELECTOR, "h1")
+                        break
+                    except Exception:
+                        pass
+                if detect_captcha(detail_driver):
+                    update(base_pct, "Waiting for captcha resolution...")
+                    while detect_captcha(detail_driver):
+                        time.sleep(5)
+                    update(base_pct, f"Phase 2: Extracting detail {i+1}/{n_links}")
+                    continue
+                time.sleep(3)
+
+            detail = extract_detail(detail_driver, url, debug=False)
+            if detail:
+                details.append(detail)
+
+            if i < n_links - 1:
+                time.sleep(2)
+
+        detail_driver.quit()
+        detail_driver = None
+
+        # ── Save JSON ─────────────────────────────────────────────────────────
+        update(93, "Saving results...")
+        ts = int(time.time())
+        output_file = str(current_dir / "PDKI" / f"pdki_pipeline_{ts}.json")
+        results_data = {
+            "generated":    str(datetime.now()),
+            "searches":     searches,
+            "total_links":  len(all_links),
+            "total_details": len(details),
+            "links":        all_links,
+            "details":      details,
+        }
+        with open(output_file, "w", encoding="utf-8") as f:
+            _json.dump(results_data, f, indent=2, ensure_ascii=False)
+
+        # ── Save to search history ────────────────────────────────────────────
+        keyword = searches[0].get("main_title", "pdki") if searches else "pdki"
+        try:
+            history_db.add_search(
+                keyword=keyword,
+                google_sheets_url=None,
+                source="pdki",
+                display_name=f"PDKI: {keyword}",
+                spreadsheet_id=None,
+                output_file=output_file,
+            )
+        except Exception as hist_err:
+            print(f"[PDKI] History save failed: {hist_err}")
+
+        pdki_jobs[job_id].update({
+            "status":        "completed",
+            "progress":      100,
+            "current_stage": "Completed successfully",
+            "completed_at":  datetime.now().isoformat(),
+            "results": {
+                "total_patents": len(details),
+                "total_links":   len(all_links),
+                "searches":      len(searches),
+                "source":        "pdki",
+            },
+            "output_file": output_file,
+            "sheets_url":  None,
+        })
+
+    except Exception as exc:
+        import traceback
+        traceback.print_exc()
+        for drv in (search_driver, detail_driver):
+            if drv:
+                try:
+                    drv.quit()
+                except Exception:
+                    pass
+        pdki_jobs[job_id].update({
+            "status":        "failed",
+            "current_stage": "Failed",
+            "completed_at":  datetime.now().isoformat(),
+            "error_message": str(exc),
+        })
+
+
+async def run_pdki_job(job_id: str, searches: list, export_sheets: bool):
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(None, _run_pdki_blocking, job_id, searches, export_sheets)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PDKI Pipeline Search — Endpoints
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.post("/api/v1/pdki/start", response_model=PipelineResponse)
+async def start_pdki_pipeline(request: PDKIRequest, background_tasks: BackgroundTasks):
+    """Start a new PDKI two-layer search pipeline job (Phase 1 + Phase 2)."""
+    if not request.searches:
+        raise HTTPException(status_code=400, detail="At least one search is required")
+    for i, s in enumerate(request.searches):
+        if not s.main_title.strip():
+            raise HTTPException(status_code=400, detail=f"Search {i+1}: main_title is required")
+        if s.pagination not in (10, 50, 100):
+            raise HTTPException(status_code=400, detail=f"Search {i+1}: pagination must be 10, 50, or 100")
+
+    job_id = str(uuid.uuid4())
+    pdki_jobs[job_id] = {
+        "job_id":        job_id,
+        "status":        "queued",
+        "progress":      0,
+        "current_stage": "Queued...",
+        "created_at":    datetime.now().isoformat(),
+        "completed_at":  None,
+        "error_message": None,
+        "results":       None,
+        "output_file":   None,
+        "sheets_url":    None,
+    }
+
+    searches_list = [s.dict() for s in request.searches]
+    background_tasks.add_task(run_pdki_job, job_id, searches_list, request.export_sheets)
+
+    return PipelineResponse(
+        job_id=job_id,
+        status="queued",
+        message=f"PDKI pipeline started with {len(request.searches)} search(es)",
+    )
+
+
+@app.get("/api/v1/pdki/{job_id}", response_model=JobStatus)
+async def get_pdki_job_status(job_id: str):
+    """Get the status of a PDKI pipeline job."""
+    if job_id not in pdki_jobs:
+        raise HTTPException(status_code=404, detail="PDKI job not found")
+    return JobStatus(**pdki_jobs[job_id])
+
+
+@app.get("/api/v1/pdki/{job_id}/download")
+async def download_pdki_results(job_id: str):
+    """Download the JSON results file for a completed PDKI job."""
+    if job_id not in pdki_jobs:
+        raise HTTPException(status_code=404, detail="PDKI job not found")
+    job = pdki_jobs[job_id]
+    if job["status"] != "completed":
+        raise HTTPException(status_code=400, detail="Job not completed yet")
+    output_file = job.get("output_file")
+    if not output_file or not os.path.exists(output_file):
+        raise HTTPException(status_code=404, detail="Results file not found")
+    return FileResponse(output_file, media_type="application/json", filename="pdki_patents.json")
 
 
 if __name__ == "__main__":
