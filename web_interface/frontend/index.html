@@ -1121,12 +1121,14 @@
     <!-- VNC Panel -->
     <div id="vncPanel" style="display:none;position:fixed;bottom:70px;right:20px;z-index:10002;
          width:900px;height:580px;background:#1e1e2e;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.5);
-         display:none;flex-direction:column;overflow:hidden;">
+         flex-direction:column;overflow:hidden;transition:all 0.2s ease;">
         <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;
                     background:#2a2a3e;border-bottom:1px solid #444;flex-shrink:0;">
             <span style="color:#cdd6f4;font-weight:600;font-size:0.9em;">VNC — Live Browser Display</span>
             <div style="display:flex;gap:8px;align-items:center;">
                 <span style="color:#a6e3a1;font-size:0.78em;">Solve captchas directly here</span>
+                <button onclick="maximizeVncPanel()" id="vncMaxBtn" style="background:#45475a;color:#cdd6f4;border:none;
+                        border-radius:6px;padding:3px 10px;cursor:pointer;font-size:0.85em;">⛶ Maximize</button>
                 <button onclick="closeVncPanel()" style="background:#f38ba8;color:#fff;border:none;
                         border-radius:6px;padding:3px 10px;cursor:pointer;font-size:0.85em;">✕ Close</button>
             </div>
@@ -1645,6 +1647,25 @@
 
         // ── VNC Panel ────────────────────────────────────────────────────────
         let _vncOpen = false;
+        let _vncMaximized = false;
+
+        function _injectVncScrollbarCSS() {
+            try {
+                const iframe = document.getElementById('vncIframe');
+                const doc = iframe.contentDocument || iframe.contentWindow.document;
+                if (doc.getElementById('_vnc_scrollbar_style')) return;
+                const style = doc.createElement('style');
+                style.id = '_vnc_scrollbar_style';
+                style.textContent = `
+                    ::-webkit-scrollbar { width: 20px; height: 20px; }
+                    ::-webkit-scrollbar-track { background: #2a2a3e; }
+                    ::-webkit-scrollbar-thumb { background: #667eea; border-radius: 10px; border: 3px solid #2a2a3e; }
+                    ::-webkit-scrollbar-thumb:hover { background: #888afa; }
+                `;
+                doc.head.appendChild(style);
+            } catch(e) {}
+        }
+
         function toggleVncPanel() {
             const panel = document.getElementById('vncPanel');
             const iframe = document.getElementById('vncIframe');
@@ -1656,11 +1677,44 @@
                              '&port=' + location.port +
                              '&path=api/vnc' +
                              '&autoconnect=true&resize=scale&quality=6';
+                iframe.onload = _injectVncScrollbarCSS;
+            }
+        }
+        function maximizeVncPanel() {
+            const panel = document.getElementById('vncPanel');
+            const btn = document.getElementById('vncMaxBtn');
+            _vncMaximized = !_vncMaximized;
+            if (_vncMaximized) {
+                panel.style.top = '0';
+                panel.style.left = '0';
+                panel.style.right = '0';
+                panel.style.bottom = '0';
+                panel.style.width = '';
+                panel.style.height = '';
+                panel.style.borderRadius = '0';
+                btn.textContent = '⊡ Restore';
+            } else {
+                panel.style.top = '';
+                panel.style.left = '';
+                panel.style.right = '20px';
+                panel.style.bottom = '70px';
+                panel.style.width = '900px';
+                panel.style.height = '580px';
+                panel.style.borderRadius = '12px';
+                btn.textContent = '⛶ Maximize';
             }
         }
         function closeVncPanel() {
             _vncOpen = false;
-            document.getElementById('vncPanel').style.display = 'none';
+            _vncMaximized = false;
+            const panel = document.getElementById('vncPanel');
+            panel.style.display = 'none';
+            // Reset to small state for next open
+            panel.style.top = ''; panel.style.left = '';
+            panel.style.right = '20px'; panel.style.bottom = '70px';
+            panel.style.width = '900px'; panel.style.height = '580px';
+            panel.style.borderRadius = '12px';
+            document.getElementById('vncMaxBtn').textContent = '⛶ Maximize';
         }
 
         // Show clear all confirmation dialog
