@@ -75,6 +75,61 @@ def _refresh_queue_stages():
 # ── Manual URL-add job tracker ────────────────────────────────────────────────
 url_add_jobs: Dict[str, Dict] = {}  # job_id -> {status, stage, error}
 
+# ── Chrome reset flag ─────────────────────────────────────────────────────────
+# Set to True during a reset so any tasks that wake up from the queue exit cleanly
+_chrome_reset_in_progress = False
+
+async def _teardown_chrome() -> dict:
+    """Kill Chrome, fail all active jobs, reset queue and lock. Used by all reset endpoints."""
+    global chrome_lock, _chrome_reset_in_progress
+    import subprocess
+    import sqlite3 as _sqlite3
+
+    _chrome_reset_in_progress = True
+
+    # Kill Chrome (SIGTERM — graceful, avoids profile corruption)
+    subprocess.run(["pkill", "chrome"], capture_output=True)
+
+    # Mark all in-memory batch stages as cancelled
+    for bid in list(batch_stages.keys()):
+        batch_stages[bid]["stage"] = "Cancelled — Chrome reset"
+
+    # Mark all running/queued/pending batches as failed in DB
+    cancelled_batches = 0
+    try:
+        conn = _sqlite3.connect(str(analysis_db.db_path))
+        rows = conn.execute(
+            "SELECT id FROM search_batches WHERE status IN ('running','queued','pending')"
+        ).fetchall()
+        for (bid,) in rows:
+            conn.execute(
+                "UPDATE search_batches SET status='failed', error='Cancelled — Chrome reset' WHERE id=?",
+                (bid,),
+            )
+            cancelled_batches += 1
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
+    # Mark all running/queued url_add jobs as failed in memory
+    cancelled_url_adds = 0
+    for job in url_add_jobs.values():
+        if job["status"] in ("queued", "running"):
+            job["status"] = "failed"
+            job["stage"] = "Cancelled — Chrome reset"
+            job["error"] = "Cancelled by Chrome reset"
+            cancelled_url_adds += 1
+
+    # Clear chrome_queue and replace lock (handles phantom-locked semaphore)
+    chrome_queue.clear()
+    chrome_lock = asyncio.Semaphore(1)
+
+    await asyncio.sleep(1)
+    _chrome_reset_in_progress = False
+
+    return {"cancelled_batches": cancelled_batches, "cancelled_url_adds": cancelled_url_adds}
+
 # Initialize search history database
 history_db = SearchHistoryDB()
 
@@ -809,6 +864,8 @@ async def run_batch_job(
         print(f"[batch_job] {msg}")
 
     async with chrome_lock:
+        if _chrome_reset_in_progress:
+            return  # already marked failed by _teardown_chrome
         chrome_queue.remove(_queue_entry)
         _refresh_queue_stages()
         analysis_db.update_batch_status(batch_id, "running")
@@ -1343,6 +1400,8 @@ async def _run_url_add_job(analysis_id: str, job_id: str, url: str):
         print(f"[url_add {job_id[:8]}] {msg}")
 
     async with chrome_lock:
+        if _chrome_reset_in_progress:
+            return  # already marked failed by _teardown_chrome
         chrome_queue.remove(_queue_entry)
         _refresh_queue_stages()
         url_add_jobs[job_id]["status"] = "running"
@@ -1871,6 +1930,74 @@ async def download_pdki_results(job_id: str):
     if not output_file or not os.path.exists(output_file):
         raise HTTPException(status_code=404, detail="Results file not found")
     return FileResponse(output_file, media_type="application/json", filename="pdki_patents.json")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Chrome Management (Settings panel)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.post("/api/chrome/kill")
+async def chrome_kill():
+    """Kill all Chrome processes and clear the job queue."""
+    stats = await _teardown_chrome()
+    return {"success": True, "message": "Chrome killed and queue cleared.", **stats}
+
+
+@app.post("/api/chrome/soft-reset")
+async def chrome_soft_reset():
+    """Kill Chrome, clear the queue, and remove corrupted cache/prefs (keeps login sessions)."""
+    import subprocess
+    stats = await _teardown_chrome()
+    cmds = [
+        ["rm", "-f",
+         "/root/chrome-profile/SingletonLock",
+         "/root/chrome-profile/SingletonSocket",
+         "/root/chrome-profile/SingletonCookie"],
+        ["rm", "-rf", "/root/chrome-profile/Default/GPUCache"],
+        ["rm", "-rf", "/root/chrome-profile/Default/Code Cache"],
+        ["rm", "-rf", "/root/chrome-profile/Default/Cache"],
+        ["rm", "-f",  "/root/chrome-profile/Default/Preferences"],
+    ]
+    for cmd in cmds:
+        subprocess.run(cmd, capture_output=True)
+    return {"success": True, "message": "Soft reset complete. Login sessions preserved.", **stats}
+
+
+@app.post("/api/chrome/hard-reset")
+async def chrome_hard_reset():
+    """Kill Chrome, clear the queue, and delete the entire Chrome profile (loses all logins)."""
+    import subprocess
+    stats = await _teardown_chrome()
+    subprocess.run(["rm", "-rf", "/root/chrome-profile/Default"], capture_output=True)
+    return {"success": True, "message": "Hard reset complete. All Chrome data deleted.", **stats}
+
+
+@app.post("/api/db/clear-analysis")
+async def db_clear_analysis():
+    """Delete all patent analyses, batches, and results from the database."""
+    import sqlite3 as _sqlite3
+    conn = _sqlite3.connect(str(analysis_db.db_path))
+    conn.execute("DELETE FROM pdki_results")
+    conn.execute("DELETE FROM search_batches")
+    conn.execute("DELETE FROM patent_analyses")
+    conn.commit()
+    conn.close()
+    batch_stages.clear()
+    categorization_jobs.clear()
+    return {"success": True, "message": "All patent analysis data deleted."}
+
+
+@app.post("/api/chrome/launch")
+async def chrome_launch():
+    """Launch Chrome on display :99 with the shared profile (for manual login via VNC)."""
+    import subprocess
+    env = os.environ.copy()
+    env["DISPLAY"] = ":99"
+    subprocess.Popen(
+        ["google-chrome", "--user-data-dir=/root/chrome-profile", "--no-sandbox"],
+        env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    )
+    return {"success": True, "message": "Chrome launched on display :99. Use the VNC panel to log in."}
 
 
 if __name__ == "__main__":

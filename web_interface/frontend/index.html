@@ -939,6 +939,7 @@
                 <button class="tab-btn active" data-tab="search">🔍 Search Patents</button>
                 <button class="tab-btn" data-tab="history">📜 Search History</button>
                 <button class="tab-btn" data-tab="analysis">🔬 Patent Analysis</button>
+                <button class="tab-btn" data-tab="settings">⚙️ Settings</button>
             </div>
         </div>
 
@@ -1116,6 +1117,145 @@
             </div>
         </div>
         <!-- End Patent Analysis Page -->
+    </div>
+
+    <!-- Settings Page -->
+    <div class="page-section" id="settingsPage" style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);min-height:calc(100vh - 160px);margin:-20px;padding:20px;">
+        <div style="max-width:780px;margin:40px auto;padding:0 20px;">
+            <h2 style="color:#ffffff;margin-bottom:6px;">Chrome Management</h2>
+            <p style="color:#cdd6f4;margin-bottom:32px;font-size:0.95em;">
+                Use these tools to recover from stuck jobs or a corrupted Chrome profile.
+                All destructive actions also cancel any running or queued batch searches.
+            </p>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+
+                <!-- Kill Chrome -->
+                <div style="background:#1e1e2e;border:1px solid #313244;border-radius:12px;padding:24px;">
+                    <div style="font-size:1.5em;margin-bottom:8px;">🔴</div>
+                    <h3 style="color:#cdd6f4;margin:0 0 8px;">Kill All Chrome</h3>
+                    <p style="color:#a6adc8;font-size:0.88em;margin:0 0 20px;line-height:1.5;">
+                        Kills all Chrome processes and clears the job queue. Use when a batch is stuck but Chrome is already dead.
+                    </p>
+                    <button onclick="chromeAction('kill')"
+                            style="background:#f38ba8;color:#1e1e2e;border:none;border-radius:8px;
+                                   padding:9px 20px;font-weight:600;cursor:pointer;width:100%;">
+                        Kill All Chrome
+                    </button>
+                </div>
+
+                <!-- Soft Reset -->
+                <div style="background:#1e1e2e;border:1px solid #313244;border-radius:12px;padding:24px;">
+                    <div style="font-size:1.5em;margin-bottom:8px;">🟠</div>
+                    <h3 style="color:#cdd6f4;margin:0 0 8px;">Soft Reset</h3>
+                    <p style="color:#a6adc8;font-size:0.88em;margin:0 0 20px;line-height:1.5;">
+                        Kills Chrome and clears corrupted cache, lock files, and preferences.
+                        <strong style="color:#a6e3a1;">Login sessions are preserved.</strong>
+                    </p>
+                    <button onclick="chromeAction('soft-reset')"
+                            style="background:#fab387;color:#1e1e2e;border:none;border-radius:8px;
+                                   padding:9px 20px;font-weight:600;cursor:pointer;width:100%;">
+                        Soft Reset Profile
+                    </button>
+                </div>
+
+                <!-- Hard Reset -->
+                <div style="background:#1e1e2e;border:1px solid #313244;border-radius:12px;padding:24px;">
+                    <div style="font-size:1.5em;margin-bottom:8px;">💥</div>
+                    <h3 style="color:#cdd6f4;margin:0 0 8px;">Hard Reset</h3>
+                    <p style="color:#a6adc8;font-size:0.88em;margin:0 0 20px;line-height:1.5;">
+                        Kills Chrome and deletes the entire Chrome profile.
+                        <strong style="color:#f38ba8;">All logins will be lost.</strong> Use only if soft reset fails.
+                    </p>
+                    <button onclick="showHardResetConfirm()"
+                            style="background:#313244;color:#f38ba8;border:1px solid #f38ba8;border-radius:8px;
+                                   padding:9px 20px;font-weight:600;cursor:pointer;width:100%;">
+                        Hard Reset Profile
+                    </button>
+                </div>
+
+                <!-- Launch Chrome -->
+                <div style="background:#1e1e2e;border:1px solid #313244;border-radius:12px;padding:24px;">
+                    <div style="font-size:1.5em;margin-bottom:8px;">🟢</div>
+                    <h3 style="color:#cdd6f4;margin:0 0 8px;">Launch Chrome for Login</h3>
+                    <p style="color:#a6adc8;font-size:0.88em;margin:0 0 20px;line-height:1.5;">
+                        Opens Chrome on the virtual display. Use the VNC panel (bottom-right) to log in to sites manually.
+                    </p>
+                    <button onclick="chromeAction('launch')"
+                            style="background:#a6e3a1;color:#1e1e2e;border:none;border-radius:8px;
+                                   padding:9px 20px;font-weight:600;cursor:pointer;width:100%;">
+                        Launch Chrome
+                    </button>
+                </div>
+            </div>
+
+            <!-- Database Section -->
+            <h2 style="color:#ffffff;margin:40px 0 6px;">Database</h2>
+            <p style="color:#cdd6f4;margin-bottom:24px;font-size:0.95em;">
+                Manage stored patent analysis data.
+            </p>
+            <div style="background:#1e1e2e;border:1px solid #313244;border-radius:12px;padding:24px;">
+                <div style="font-size:1.5em;margin-bottom:8px;">🗄️</div>
+                <h3 style="color:#ffffff;margin:0 0 8px;">Delete All Analysis Data</h3>
+                <p style="color:#cdd6f4;font-size:0.88em;margin:0 0 20px;line-height:1.5;">
+                    Permanently deletes all patent analyses, batch searches, and results from the database.
+                    <strong style="color:#f38ba8;">This cannot be undone.</strong>
+                </p>
+                <button onclick="showClearDbConfirm()"
+                        style="background:#313244;color:#f38ba8;border:1px solid #f38ba8;border-radius:8px;
+                               padding:9px 20px;font-weight:600;cursor:pointer;">
+                    Delete All Analysis Data
+                </button>
+            </div>
+
+            <!-- Status message -->
+            <div id="chromeActionStatus" style="margin-top:24px;display:none;
+                 padding:14px 18px;border-radius:8px;font-size:0.92em;font-weight:500;color:#fff;"></div>
+        </div>
+    </div>
+
+    <!-- Clear DB Confirmation Modal -->
+    <div id="clearDbModal" style="display:none;position:fixed;inset:0;z-index:20000;
+         background:rgba(0,0,0,0.7);align-items:center;justify-content:center;">
+        <div style="background:#1e1e2e;border:1px solid #f38ba8;border-radius:12px;
+                    padding:32px;max-width:440px;width:90%;">
+            <h3 style="color:#f38ba8;margin:0 0 12px;">⚠️ Delete All Analysis Data?</h3>
+            <p style="color:#cdd6f4;margin:0 0 8px;line-height:1.6;">
+                This will permanently delete <strong>all analyses, batch searches, and results</strong> from the database.
+            </p>
+            <p style="color:#a6adc8;font-size:0.88em;margin:0 0 24px;">This cannot be undone.</p>
+            <div style="display:flex;gap:12px;">
+                <button onclick="closeClearDbConfirm()"
+                        style="flex:1;background:#313244;color:#cdd6f4;border:none;border-radius:8px;
+                               padding:10px;font-weight:600;cursor:pointer;">Cancel</button>
+                <button onclick="confirmClearDb()"
+                        style="flex:1;background:#f38ba8;color:#1e1e2e;border:none;border-radius:8px;
+                               padding:10px;font-weight:600;cursor:pointer;">Yes, Delete All</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hard Reset Confirmation Modal -->
+    <div id="hardResetModal" style="display:none;position:fixed;inset:0;z-index:20000;
+         background:rgba(0,0,0,0.7);align-items:center;justify-content:center;">
+        <div style="background:#1e1e2e;border:1px solid #f38ba8;border-radius:12px;
+                    padding:32px;max-width:440px;width:90%;">
+            <h3 style="color:#f38ba8;margin:0 0 12px;">⚠️ Hard Reset — Are you sure?</h3>
+            <p style="color:#cdd6f4;margin:0 0 8px;line-height:1.6;">
+                This will delete <strong>all Chrome profile data</strong> including cookies, saved passwords, and session logins.
+            </p>
+            <p style="color:#a6adc8;font-size:0.88em;margin:0 0 24px;">
+                You will need to manually log back in to PDKI and any other sites via the VNC panel.
+            </p>
+            <div style="display:flex;gap:12px;">
+                <button onclick="closeHardResetConfirm()"
+                        style="flex:1;background:#313244;color:#cdd6f4;border:none;border-radius:8px;
+                               padding:10px;font-weight:600;cursor:pointer;">Cancel</button>
+                <button onclick="confirmHardReset()"
+                        style="flex:1;background:#f38ba8;color:#1e1e2e;border:none;border-radius:8px;
+                               padding:10px;font-weight:600;cursor:pointer;">Yes, Hard Reset</button>
+            </div>
+        </div>
     </div>
 
     <!-- VNC Panel -->
@@ -1528,6 +1668,8 @@
                     if (window.patentAnalysisApp) {
                         window.patentAnalysisApp.loadAnalyses();
                     }
+                } else if (tabName === 'settings') {
+                    document.getElementById('settingsPage').classList.add('active');
                 }
             }
 
@@ -1643,6 +1785,73 @@
                 console.error('Delete error:', error);
                 alert('❌ Failed to delete entry: ' + error.message);
             }
+        }
+
+        // ── Chrome Management (Settings) ─────────────────────────────────────
+        async function chromeAction(action) {
+            const statusEl = document.getElementById('chromeActionStatus');
+            statusEl.style.display = 'block';
+            statusEl.style.background = '#313244';
+            statusEl.style.color = '#cdd6f4';
+            statusEl.textContent = 'Working…';
+            try {
+                const res = await fetch(`/api/chrome/${action}`, { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    statusEl.style.background = '#1e3a2f';
+                    statusEl.style.color = '#a6e3a1';
+                    let msg = '✅ ' + data.message;
+                    if (data.cancelled_batches > 0)
+                        msg += ` (${data.cancelled_batches} batch${data.cancelled_batches > 1 ? 'es' : ''} cancelled)`;
+                    statusEl.textContent = msg;
+                } else {
+                    statusEl.style.background = '#3a1e1e';
+                    statusEl.style.color = '#f38ba8';
+                    statusEl.textContent = '❌ ' + (data.message || 'Unknown error');
+                }
+            } catch (e) {
+                statusEl.style.background = '#3a1e1e';
+                statusEl.style.color = '#f38ba8';
+                statusEl.textContent = '❌ Request failed: ' + e.message;
+            }
+        }
+
+        function showClearDbConfirm() {
+            document.getElementById('clearDbModal').style.display = 'flex';
+        }
+        function closeClearDbConfirm() {
+            document.getElementById('clearDbModal').style.display = 'none';
+        }
+        async function confirmClearDb() {
+            closeClearDbConfirm();
+            const statusEl = document.getElementById('chromeActionStatus');
+            statusEl.style.display = 'block';
+            statusEl.style.background = '#313244';
+            statusEl.style.color = '#cdd6f4';
+            statusEl.textContent = 'Deleting…';
+            try {
+                const res = await fetch('/api/db/clear-analysis', { method: 'POST' });
+                const data = await res.json();
+                statusEl.style.background = data.success ? '#1e3a2f' : '#3a1e1e';
+                statusEl.style.color = data.success ? '#a6e3a1' : '#f38ba8';
+                statusEl.textContent = (data.success ? '✅ ' : '❌ ') + data.message;
+            } catch (e) {
+                statusEl.style.background = '#3a1e1e';
+                statusEl.style.color = '#f38ba8';
+                statusEl.textContent = '❌ Request failed: ' + e.message;
+            }
+        }
+
+        function showHardResetConfirm() {
+            const modal = document.getElementById('hardResetModal');
+            modal.style.display = 'flex';
+        }
+        function closeHardResetConfirm() {
+            document.getElementById('hardResetModal').style.display = 'none';
+        }
+        async function confirmHardReset() {
+            closeHardResetConfirm();
+            await chromeAction('hard-reset');
         }
 
         // ── VNC Panel ────────────────────────────────────────────────────────
